@@ -1,0 +1,13 @@
+run = ["bash", "-c", "pip install -r requirements.txt && uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+
+entrypoint = "bash -c 'uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}'"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["bash", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+deploymentTarget = "autoscale"
+
+[deployment.env]
+PYTHONPATH = "."
