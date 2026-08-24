@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}{{ breed.name }} — Breed Reference{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <a href="/breeds" class="text-sm text-paw-600 dark:text-paw-400 hover:underline">&larr; Back to all breeds</a>
+
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ breed.name }}</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ breed.origin or '' }}</p>
+            </div>
+            <div class="flex space-x-2">
+                {% if breed.size_category %}<span class="badge bg-paw-50 dark:bg-paw-900/50 text-paw-700 dark:text-paw-300">{{ breed.size_category|capitalize }}</span>{% endif %}
+            </div>
+        </div>
+
+        <!-- Overview grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Size Category</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ breed.size_category|capitalize if breed.size_category else '—' }}</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Weight</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">
+                    {% if breed.weight_range_min and breed.weight_range_max %}{{ breed.weight_range_min }}–{{ breed.weight_range_max }} kg{% elif breed.weight_range_min %}{{ breed.weight_range_min }} kg+{% else %}—{% endif %}
+                </p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Lifespan</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ breed.lifespan_years or '—' }}</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Energy Level</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ breed.energy_level|capitalize if breed.energy_level else '—' }}</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Trainability</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ breed.trainability|capitalize if breed.trainability else '—' }}</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Shedding</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ breed.shedding_level|capitalize if breed.shedding_level else '—' }}</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Coat</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ breed.coat_type or '—' }}</p>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                <p class="text-xs text-gray-500 dark:text-gray-400">Grooming</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ breed.grooming_freq or '—' }}</p>
+            </div>
+        </div>
+
+        <!-- Breed Statistics -->
+        {% if breed.akc_popularity_rank or breed.hip_dysplasia_pct or breed.median_lifespan %}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            {% if breed.akc_popularity_rank %}
+            <div class="bg-paw-50 dark:bg-paw-900/30 rounded-lg p-4 text-center border border-paw-100 dark:border-paw-800">
+                <p class="text-3xl font-bold text-paw-700 dark:text-paw-400">#{{ breed.akc_popularity_rank }}</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">AKC Popularity 2025</p>
+            </div>
+            {% endif %}
+            {% if breed.hip_dysplasia_pct %}
+            <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 text-center border border-red-100 dark:border-red-800">
+                <p class="text-3xl font-bold text-red-700 dark:text-red-400">{{ "%.1f"|format(breed.hip_dysplasia_pct) }}%</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Hip Dysplasia Prevalence</p>
+            </div>
+            {% endif %}
+            {% if breed.median_lifespan %}
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center border border-blue-100 dark:border-blue-800">
+                <p class="text-3xl font-bold text-blue-700 dark:text-blue-400">{{ "%.1f"|format(breed.median_lifespan) }} yrs</p>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Median Lifespan (2024 study)</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Sections -->
+        <div class="space-y-6">
+            {% if breed.akc_group %}
+            <div class="inline-flex items-center px-3 py-1 rounded-full bg-paw-50 dark:bg-paw-900/50 text-paw-700 dark:text-paw-300 text-sm font-medium">
+                🏅 AKC {{ breed.akc_group }}
+            </div>
+            {% endif %}
+
+            {% if breed.akc_traits %}
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-xl p-5">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">📊 AKC Trait Scorecard</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Rated 1–5 by the American Kennel Club (5 = most)</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+                    {% set trait_labels = {
+                        'affectionate_with_family': 'Affectionate with family',
+                        'good_with_young_children': 'Good with young children',
+                        'good_with_other_dogs': 'Good with other dogs',
+                        'openness_to_strangers': 'Openness to strangers',
+                        'playfulness_level': 'Playfulness',
+                        'watchdog_protective': 'Watchdog / protective nature',
+                        'adaptability_level': 'Adaptability',
+                        'trainability_level': 'Trainability',
+                        'energy_level': 'Energy level',
+                        'barking_level': 'Barking level',
+                        'mental_stimulation_needs': 'Mental stimulation needs',
+                        'shedding_level': 'Shedding level',
+                        'coat_grooming_frequency': 'Coat grooming frequency',
+                        'drooling_level': 'Drooling level',
+                    } %}
+                    {% for key, label in trait_labels.items() %}
+                    {% if breed.akc_traits.get(key) %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">{{ label }}</span>
+                        <span class="flex items-center space-x-0.5">
+                            {% for i in range(5) %}
+                            <span class="w-2.5 h-2.5 rounded-full {% if i < breed.akc_traits[key]|int %}bg-paw-500{% else %}bg-gray-300 dark:bg-gray-700{% endif %}"></span>
+                            {% endfor %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if breed.temperament %}
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">🧠 Temperament</h2>
+                <p class="text-sm text-gray-700 dark:text-gray-300">{{ breed.temperament }}</p>
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% if breed.good_with_kids %}
+                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Good with kids</p>
+                    <p class="text-sm text-gray-900 dark:text-white">{{ breed.good_with_kids }}</p>
+                </div>
+                {% endif %}
+                {% if breed.good_with_dogs %}
+                <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Good with dogs</p>
+                    <p class="text-sm text-gray-900 dark:text-white">{{ breed.good_with_dogs }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if breed.common_health_issues %}
+            <div class="border-l-4 border-red-300 dark:border-red-700 pl-4">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">⚠️ Common Health Issues</h2>
+                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ breed.common_health_issues }}</p>
+            </div>
+            {% endif %}
+
+            {% if breed.exercise_needs_min %}
+            <div class="border-l-4 border-paw-300 dark:border-paw-700 pl-4">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">🐕 Exercise Needs</h2>
+                <p class="text-sm text-gray-700 dark:text-gray-300">{{ breed.exercise_needs_min }}</p>
+            </div>
+            {% endif %}
+
+            {% if breed.care_notes %}
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">📝 Care Notes</h2>
+                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ breed.care_notes }}</p>
+            </div>
+            {% endif %}
+
+            {% if breed.diet_sensitivities %}
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">🍽️ Diet Sensitivities</h2>
+                <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ breed.diet_sensitivities }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Dogs of this breed -->
+        {% if dogs %}
+        <div class="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">🐕 Dogs of this breed</h2>
+            <div class="flex flex-wrap gap-3">
+                {% for d in dogs %}
+                <a href="/dogs/{{ d.id }}" class="inline-flex items-center px-4 py-2 bg-paw-50 dark:bg-paw-900/50 text-paw-700 dark:text-paw-300 rounded-lg hover:bg-paw-100 text-sm font-medium">
+                    🐕 {{ d.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

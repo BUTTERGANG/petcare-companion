@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ dog.name }} — PetCare Companion{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="w-20 h-20 rounded-full bg-paw-100 dark:bg-paw-900 flex items-center justify-center overflow-hidden text-3xl flex-shrink-0">
+                    {% if dog.photo_path %}
+                    <img src="{{ dog.photo_path }}" alt="{{ dog.name }}" class="w-full h-full object-cover">
+                    {% else %}
+                    🐕
+                    {% endif %}
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ dog.name }}</h1>
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        {% if dog.breed %}
+                        <span class="text-paw-600 dark:text-paw-400 font-medium">{{ dog.breed.name }}</span>
+                        {% else %}
+                        <span>Unknown breed</span>
+                        {% endif %}
+                        {% if age_str %}<span>· {{ age_str }}</span>{% endif %}
+                        {% if dog.sex %}<span>· {{ dog.sex|capitalize }}</span>{% endif %}
+                        {% if dog.spayed_neutered %}<span>· ✓ Neutered</span>{% endif %}
+                    </div>
+                    {% if dog.weight %}<p class="text-sm text-gray-500 mt-1">{{ dog.weight }} kg</p>{% endif %}
+                    {% if dog.microchip_id %}<p class="text-sm text-gray-500">Microchip: {{ dog.microchip_id }}</p>{% endif %}
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <a href="/dogs/{{ dog.id }}/edit" class="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">✏️ Edit</a>
+                <form method="post" action="/dogs/{{ dog.id }}/delete" onsubmit="return confirm('Delete {{ dog.name }} and all medical records?')" class="inline">
+                    <button type="submit" class="px-3 py-1.5 text-sm text-red-600 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30">🗑️ Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Breed Info Card (if breed known) -->
+    {% if dog.breed %}
+    <div class="bg-paw-50 dark:bg-paw-900/30 rounded-xl border border-paw-200 dark:border-paw-800 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">📚 Breed: {{ dog.breed.name }}</h2>
+            <a href="/breeds/{{ dog.breed.id }}" class="text-sm text-paw-600 dark:text-paw-400 font-medium hover:underline">View breed info →</a>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Size</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.size_category|capitalize if dog.breed.size_category else '—' }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Lifespan</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.lifespan_years or '—' }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Energy</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.energy_level|capitalize if dog.breed.energy_level else '—' }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Shedding</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.shedding_level|capitalize if dog.breed.shedding_level else '—' }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="flex flex-wrap gap-3">
+        <a href="/dogs/{{ dog.id }}/nutrition" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">🍽️ Nutrition</a>
+        <a href="/dogs/{{ dog.id }}/vet-visits/add" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">🏥 Add Vet Visit</a>
+        <a href="/dogs/{{ dog.id }}/vaccinations/add" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">💉 Add Vaccination</a>
+        <a href="/dogs/{{ dog.id }}/medications/add" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">💊 Add Medication</a>
+        <a href="/dogs/{{ dog.id }}/edit" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">✏️ Edit Profile</a>
+    </div>
+
+    <!-- Timeline -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">📅 History Timeline</h2>
+            <div class="text-xs text-gray-500">{{ timeline|length }} events</div>
+        </div>
+
+        {% if timeline %}
+        <div class="relative pl-6 space-y-6">
+            <div class="timeline-line bg-gray-200 dark:bg-gray-700"></div>
+            {% for e in timeline %}
+            <div class="relative">
+                <span class="timeline-dot {% if e.type == 'vet_visit' %}bg-blue-500{% elif e.type == 'vaccination' %}bg-green-500{% else %}bg-purple-500{% endif %}"></span>
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            <span class="mr-1">{{ e.icon }}</span> {{ e.title }}
+                        </p>
+                        {% if e.subtitle %}<p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{{ e.subtitle }}</p>{% endif %}
+                    </div>
+                    <span class="text-xs text-gray-500 whitespace-nowrap">{{ e.date }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+            <p class="mb-3">No medical history yet for {{ dog.name }}.</p>
+            <p class="text-sm">Use the buttons above to add vet visits, vaccinations, or medications.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Notes -->
+    {% if dog.notes %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">📝 Notes</h2>
+        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ dog.notes }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ dog.name }} — PetCare Companion{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">✏️ Edit {{ dog.name }}</h1>
+    <form method="post" action="/dogs/{{ dog.id }}/edit" enctype="multipart/form-data" class="space-y-5">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+            <input type="text" name="name" value="{{ dog.name }}" required
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Breed</label>
+            <select name="breed_id"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500">
+                <option value="">Select a breed...</option>
+                {% for b in breeds %}
+                <option value="{{ b.id }}" {% if dog.breed_id == b.id %}selected{% endif %}>{{ b.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth</label>
+                <input type="date" name="dob" value="{{ dog.dob.isoformat() if dog.dob else '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weight (kg)</label>
+                <input type="number" step="0.1" name="weight" value="{{ dog.weight if dog.weight else '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sex</label>
+                <select name="sex"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500">
+                    <option value="">Select...</option>
+                    <option value="male" {% if dog.sex == 'male' %}selected{% endif %}>Male</option>
+                    <option value="female" {% if dog.sex == 'female' %}selected{% endif %}>Female</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Microchip ID</label>
+                <input type="text" name="microchip_id" value="{{ dog.microchip_id or '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500">
+            </div>
+        </div>
+        <div class="flex items-center">
+            <input type="checkbox" name="spayed_neutered" value="true" id="spayed" {% if dog.spayed_neutered %}checked{% endif %}
+                   class="h-4 w-4 text-paw-600 focus:ring-paw-500 border-gray-300 rounded">
+            <label for="spayed" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Spayed / Neutered</label>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Photo</label>
+            {% if dog.photo_path %}<p class="text-xs text-gray-500 mb-1">Current photo uploaded. Choose a new one to replace.</p>{% endif %}
+            <input type="file" name="photo" accept="image/*"
+                   class="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-paw-50 dark:file:bg-paw-900 file:text-paw-700 dark:file:text-paw-300 hover:file:bg-paw-100">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+            <textarea name="notes" rows="3"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500">{{ dog.notes or '' }}</textarea>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button type="submit" class="px-6 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition">
+                Save Changes
+            </button>
+            <a href="/dogs/{{ dog.id }}" class="px-6 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 font-medium">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

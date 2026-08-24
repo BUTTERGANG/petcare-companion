@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ symptom.name }} — Symptom Checker{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <a href="/symptom-checker" class="text-sm text-paw-600 dark:text-paw-400 hover:underline">&larr; Back to all symptoms</a>
+
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mt-4">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ symptom.name }}</h1>
+            {% if symptom.urgency == 'emergency' %}
+            <span class="px-4 py-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-bold text-sm">🚨 EMERGENCY</span>
+            {% elif symptom.urgency == 'urgent' %}
+            <span class="px-4 py-2 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 font-bold text-sm">⚡ SEE A VET SOON</span>
+            {% else %}
+            <span class="px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold text-sm">👀 MONITOR AT HOME</span>
+            {% endif %}
+        </div>
+
+        <div class="prose dark:prose-invert max-w-none">
+            {% if symptom.urgency == 'emergency' %}
+            <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+                <p class="text-sm font-medium text-red-800 dark:text-red-300">{{ symptom.advice }}</p>
+            </div>
+            {% elif symptom.urgency == 'urgent' %}
+            <div class="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 mb-6 rounded-r-lg">
+                <p class="text-sm font-medium text-amber-800 dark:text-amber-300">{{ symptom.advice }}</p>
+            </div>
+            {% else %}
+            <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+                <p class="text-sm font-medium text-blue-800 dark:text-blue-300">{{ symptom.advice }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                ⚠️ This information is for educational purposes only and is not a substitute for professional veterinary advice.
+                Always consult your veterinarian if you have concerns about your pet's health.
+                If you're unsure about the severity of your pet's condition, err on the side of caution and contact your vet.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

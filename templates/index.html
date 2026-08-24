@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — PetCare Companion{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">🐾 PetCare Dashboard</h1>
+
+    {% if not dogs %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <div class="text-6xl mb-4">🐕</div>
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Welcome to PetCare Companion!</h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">Add your first dog to get started tracking medical records, vaccinations, and more.</p>
+        <a href="/dogs/add" class="inline-flex items-center px-6 py-3 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition">
+            + Add Your First Dog
+        </a>
+    </div>
+    {% else %}
+
+    <!-- Dog Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for d in dogs %}
+        <a href="/dogs/{{ d.id }}" class="block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-paw-400 dark:hover:border-paw-600 transition overflow-hidden">
+            <div class="p-5">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 rounded-full bg-paw-100 dark:bg-paw-900 flex items-center justify-center overflow-hidden flex-shrink-0 text-2xl">
+                        {% if d.photo_path %}
+                        <img src="{{ d.photo_path }}" alt="{{ d.name }}" class="w-full h-full object-cover">
+                        {% else %}
+                        🐕
+                        {% endif %}
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">{{ d.name }}</h3>
+                        {% if d.breed_name %}
+                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ d.breed_name }}</p>
+                        {% endif %}
+                        {% if d.age_str %}
+                        <p class="text-xs text-gray-500 dark:text-gray-500">{{ d.age_str }} old</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Reminders & Recent Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Upcoming Vaccinations -->
+        <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">💉 Upcoming Vaccinations</h2>
+            {% if upcoming_vax %}
+            <div class="space-y-3">
+                {% for v in upcoming_vax %}
+                <div class="flex items-start space-x-3">
+                    <span class="text-lg">💉</span>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            <a href="/dogs/{{ v.dog_id }}" class="hover:text-paw-600">{{ v.dog_name }}</a>
+                        </p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">{{ v.vaccine_type }}</p>
+                        <p class="text-xs {% if v.days_until <= 7 %}text-red-600 font-medium{% else %}text-gray-500{% endif %}">
+                            Due {{ v.date_due.isoformat() }} ({{ v.days_until }} days)
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500 dark:text-gray-400">No upcoming vaccinations due.</p>
+            {% endif %}
+        </div>
+
+        <!-- Active Medications -->
+        <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">💊 Active Medications</h2>
+            {% if active_meds %}
+            <div class="space-y-3">
+                {% for m in active_meds %}
+                <div class="flex items-start space-x-3">
+                    <span class="text-lg">💊</span>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            <a href="/dogs/{{ m.dog_id }}" class="hover:text-paw-600">{{ m.dog_name }}</a>
+                        </p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">{{ m.name }}</p>
+                        {% if m.dosage or m.frequency %}
+                        <p class="text-xs text-gray-500">{{ m.dosage or '' }} {{ m.frequency or '' }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500 dark:text-gray-400">No active medications.</p>
+            {% endif %}
+        </div>
+
+        <!-- Recent Vet Visits -->
+        <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">🏥 Recent Vet Visits</h2>
+            {% if recent_visits %}
+            <div class="space-y-3">
+                {% for v in recent_visits %}
+                <div class="flex items-start space-x-3">
+                    <span class="text-lg">🏥</span>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            <a href="/dogs/{{ v.dog_id }}" class="hover:text-paw-600">{{ v.dog_name }}</a>
+                        </p>
+                        <p class="text-xs text-gray-600 dark:text-gray-400">{{ v.reason }}</p>
+                        <p class="text-xs text-gray-500">{{ v.date.isoformat() }}{% if v.vet_name %} · {{ v.vet_name }}{% endif %}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500 dark:text-gray-400">No vet visits recorded yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

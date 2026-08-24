@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Symptom Checker{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="text-center max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">🏥 Symptom Checker</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">Select a symptom your dog is experiencing to get urgency guidance and care advice.</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">⚠️ This is not a substitute for professional veterinary advice. When in doubt, always consult your vet.</p>
+    </div>
+
+    <!-- Filter buttons -->
+    <div class="flex flex-wrap justify-center gap-2">
+        <button onclick="filterSymptoms('all')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-paw-600 text-white" data-filter="all">All</button>
+        <button onclick="filterSymptoms('emergency')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200" data-filter="emergency">🚨 Emergency</button>
+        <button onclick="filterSymptoms('urgent')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-amber-100 text-amber-700 hover:bg-amber-200" data-filter="urgent">⚡ Urgent</button>
+        <button onclick="filterSymptoms('monitor')" class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200" data-filter="monitor">👀 Monitor</button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="symptom-grid">
+        {% for s in symptoms %}
+        <a href="/symptom-checker/{{ s.id }}" class="symptom-card block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md hover:border-paw-400 transition" data-urgency="{{ s.urgency }}">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="font-medium text-gray-900 dark:text-white">{{ s.name }}</h3>
+                {% if s.urgency == 'emergency' %}
+                <span class="badge bg-red-100 text-red-700">🚨 Emergency</span>
+                {% elif s.urgency == 'urgent' %}
+                <span class="badge bg-amber-100 text-amber-700">⚡ Urgent</span>
+                {% else %}
+                <span class="badge bg-blue-100 text-blue-700">👀 Monitor</span>
+                {% endif %}
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{{ s.advice[:100] }}{% if s.advice|length > 100 %}…{% endif %}</p>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function filterSymptoms(urgency) {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('bg-paw-600', 'text-white', 'bg-red-100', 'text-red-700', 'hover:bg-red-200', 'bg-amber-100', 'text-amber-700', 'hover:bg-amber-200', 'bg-blue-100', 'text-blue-700', 'hover:bg-blue-200');
+        if (btn.dataset.filter === 'all') {
+            btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        } else if (btn.dataset.filter === 'emergency') {
+            btn.classList.add('bg-red-100', 'text-red-700', 'hover:bg-red-200');
+        } else if (btn.dataset.filter === 'urgent') {
+            btn.classList.add('bg-amber-100', 'text-amber-700', 'hover:bg-amber-200');
+        } else if (btn.dataset.filter === 'monitor') {
+            btn.classList.add('bg-blue-100', 'text-blue-700', 'hover:bg-blue-200');
+        }
+    });
+    // Highlight active
+    const active = document.querySelector(`.filter-btn[data-filter="${urgency}"]`);
+    if (active) {
+        active.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300', 'bg-red-100', 'text-red-700', 'hover:bg-red-200', 'bg-amber-100', 'text-amber-700', 'hover:bg-amber-200', 'bg-blue-100', 'text-blue-700', 'hover:bg-blue-200');
+        active.classList.add('bg-paw-600', 'text-white');
+    }
+
+    document.querySelectorAll('.symptom-card').forEach(card => {
+        if (urgency === 'all' || card.dataset.urgency === urgency) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

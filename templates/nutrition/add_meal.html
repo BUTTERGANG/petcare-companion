@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Log Meal — {{ dog.name }}{% endblock %}
+{% block content %}
+<div class="max-w-xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+    <a href="/dogs/{{ dog.id }}" class="text-sm text-paw-600 dark:text-paw-400 hover:underline">&larr; Back to {{ dog.name }}</a>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mt-2 mb-6">🍽️ Log a Meal</h1>
+    <form method="post" action="/dogs/{{ dog.id }}/meals/add" class="space-y-5">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date *</label>
+            <input type="date" name="date_str" required
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meal Type</label>
+                <select name="meal_type"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+                    <option value="">Select...</option>
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="snack">Snack</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount</label>
+                <input type="text" name="amount" placeholder="e.g. 2 cups, 1 can"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500">
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Food Brand</label>
+                <input type="text" name="food_brand" placeholder="e.g. Blue Buffalo"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Food Name</label>
+                <input type="text" name="food_name" placeholder="e.g. Chicken & Brown Rice"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Calories (optional)</label>
+            <input type="number" step="1" name="calories"
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+            <textarea name="notes" rows="2" placeholder="Toppings, treats, etc."
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"></textarea>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button type="submit" class="px-6 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition">Save Meal</button>
+            <a href="/dogs/{{ dog.id }}/nutrition" class="text-gray-600 dark:text-gray-300 hover:text-gray-900 font-medium">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
