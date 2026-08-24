@@ -22,6 +22,11 @@ from .schemas import (
     MealCreate, MealOut,
     WeightRecordCreate, WeightRecordOut,
 )
+from .auth import (
+    hash_password, verify_password, create_session_token,
+    read_session_token, SESSION_COOKIE,
+)
+import json
 
 app = FastAPI(title="PetCare Companion")
 
@@ -58,7 +63,44 @@ def age_from_dob(dob: Optional[date]) -> Optional[str]:
     return f"{days}d"
 
 
-# --- Startup ---
+# --- Auth ---
+
+PASSWORD_FILE = os.path.join(os.path.dirname(__file__), ".password")
+
+
+def get_password_hash() -> Optional[str]:
+    if os.path.exists(PASSWORD_FILE):
+        with open(PASSWORD_FILE) as f:
+            return f.read().strip()
+    return None
+
+
+def set_password_hash(pw_hash: str):
+    with open(PASSWORD_FILE, "w") as f:
+        f.write(pw_hash)
+    os.chmod(PASSWORD_FILE, 0o600)
+
+
+def is_authenticated(request: Request) -> bool:
+    token = request.cookies.get(SESSION_COOKIE)
+    if not token:
+        return False
+    return read_session_token(token) is not None
+
+
+async def require_auth(request: Request):
+    """FastAPI dependency: redirect to /login if not authenticated."""
+    if not is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+    return None
+
+
+async def optional_auth(request: Request):
+    """For the login page itself — if already authed, skip."""
+    return None
+
+
+# --- Startup: ensure breeds seeded (as before) ---
 
 @app.on_event("startup")
 async def on_startup():
@@ -76,6 +118,57 @@ async def on_startup():
                 for bdata in breed_seed.BREEDS:
                     session.add(Breed(**bdata))
                 await session.commit()
+
+
+# ===================== AUTH ROUTES =====================
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    if is_authenticated(request):
+        return RedirectResponse(url="/", status_code=303)
+    return templates.TemplateResponse(request, "login.html", {"request": request, "error": None})
+
+
+@app.post("/login")
+async def login(
+    request: Request,
+    password: str = Form(...),
+):
+    stored = get_password_hash()
+    # No password set yet -> first-run setup: set it
+    if stored is None:
+        set_password_hash(hash_password(password))
+        response = RedirectResponse(url="/", status_code=303)
+        response.set_cookie(SESSION_COOKIE, create_session_token(), max_age=60 * 60 * 24 * 30, httponly=True, samesite="lax")
+        return response
+
+    if verify_password(password, stored):
+        response = RedirectResponse(url="/", status_code=303)
+        response.set_cookie(SESSION_COOKIE, create_session_token(), max_age=60 * 60 * 24 * 30, httponly=True, samesite="lax")
+        return response
+
+    return templates.TemplateResponse(request, "login.html", {"request": request, "error": "Incorrect password"})
+
+
+@app.post("/logout")
+async def logout():
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie(SESSION_COOKIE)
+    return response
+
+
+# ===================== AUTH MIDDLEWARE =====================
+# Protect everything except /login, /static, /uploads
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    path = request.url.path
+    public_paths = ("/login", "/static", "/uploads")
+    if path.startswith(public_paths):
+        return await call_next(request)
+    if not is_authenticated(request):
+        return RedirectResponse(url="/login", status_code=303)
+    return await call_next(request)
 
 
 # ===================== PAGE ROUTES =====================
@@ -593,11 +686,17 @@ async def nutrition_dashboard(request: Request, dog_id: int, session: AsyncSessi
     meals = meals_result.scalars().all()
     # Get weight records
     weight_result = await session.execute(
-        select(WeightRecord).where(WeightRecord.dog_id == dog_id).order_by(desc(WeightRecord.date))
+        select(WeightRecord).where(WeightRecord.dog_id == dog_id).order_by(WeightRecord.date)
     )
     weights = weight_result.scalars().all()
+    # Build chart data (chronological)
+    chart_data = {
+        "labels": [w.date.isoformat() for w in weights],
+        "values": [w.weight_kg for w in weights],
+    }
     return templates.TemplateResponse(request, "nutrition/dashboard.html", {
-        "request": request, "dog": dog, "meals": meals, "weights": weights
+        "request": request, "dog": dog, "meals": meals, "weights": list(reversed(weights)),
+        "chart_data": chart_data,
     })
 
 
@@ -740,6 +839,41 @@ async def symptom_detail(request: Request, symptom_id: str):
         raise HTTPException(status_code=404)
     return templates.TemplateResponse(request, "symptom/detail.html", {
         "request": request, "symptom": symptom
+    })
+
+
+# ===================== VET REPORT =====================
+
+@app.get("/dogs/{dog_id}/vet-report", response_class=HTMLResponse)
+async def vet_report(request: Request, dog_id: int, session: AsyncSession = Depends(get_session)):
+    result = await session.execute(
+        select(Dog).options(joinedload(Dog.breed)).where(Dog.id == dog_id)
+    )
+    dog = result.scalars().first()
+    if not dog:
+        raise HTTPException(status_code=404)
+
+    v_result = await session.execute(
+        select(VetVisit).where(VetVisit.dog_id == dog_id).order_by(desc(VetVisit.date))
+    )
+    visits = v_result.scalars().all()
+    vacc_result = await session.execute(
+        select(Vaccination).where(Vaccination.dog_id == dog_id).order_by(desc(Vaccination.date_given))
+    )
+    vaccinations = vacc_result.scalars().all()
+    med_result = await session.execute(
+        select(Medication).where(Medication.dog_id == dog_id).order_by(desc(Medication.is_active), desc(Medication.start_date))
+    )
+    meds = med_result.scalars().all()
+
+    return templates.TemplateResponse(request, "medical/vet_report.html", {
+        "request": request,
+        "dog": dog,
+        "age_str": age_from_dob(dog.dob),
+        "visits": visits,
+        "vaccinations": vaccinations,
+        "medications": meds,
+        "today": date.today(),
     })
 
 

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Vet Report — {{ dog.name }}{% endblock %}
+{% block extra_head %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white !important; }
+        main { max-width: 100% !important; padding: 0 !important; }
+        .report-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+        .page-break { page-break-before: always; }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="no-print flex items-center justify-between mb-4">
+    <a href="/dogs/{{ dog.id }}" class="text-sm text-paw-600 dark:text-paw-400 hover:underline">&larr; Back to {{ dog.name }}</a>
+    <button onclick="window.print()" class="px-4 py-2 bg-paw-600 text-white text-sm font-medium rounded-lg hover:bg-paw-700 transition">🖨️ Print / Save PDF</button>
+</div>
+
+<div class="report-card bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+    <!-- Header -->
+    <div class="flex items-start justify-between border-b-2 border-gray-200 dark:border-gray-700 pb-6 mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">🐾 Medical Summary</h1>
+            <p class="text-sm text-gray-500 mt-1">Prepared {{ today.strftime('%B %d, %Y') }}</p>
+        </div>
+        <div class="text-right">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ dog.name }}</h2>
+            {% if dog.breed %}<p class="text-sm text-gray-600">{{ dog.breed.name }}</p>{% endif %}
+            <p class="text-sm text-gray-600">
+                {% if dog.sex %}{{ dog.sex|capitalize }}{% endif %}
+                {% if dog.age_str %} · {{ age_str }}{% endif %}
+            </p>
+            {% if dog.weight %}<p class="text-sm text-gray-600">{{ dog.weight }} kg</p>{% endif %}
+            {% if dog.microchip_id %}<p class="text-sm text-gray-600">Chip: {{ dog.microchip_id }}</p>{% endif %}
+        </div>
+    </div>
+
+    <!-- At-a-glance stats -->
+    <div class="grid grid-cols-3 gap-4 mb-8">
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ visits|length }}</p>
+            <p class="text-xs text-gray-500 mt-1">Vet Visits</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ vaccinations|length }}</p>
+            <p class="text-xs text-gray-500 mt-1">Vaccinations</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ medications|selectattr('is_active')|list|length }}</p>
+            <p class="text-xs text-gray-500 mt-1">Active Meds</p>
+        </div>
+    </div>
+
+    <!-- Active medications (most important for a vet) -->
+    {% set active_meds = medications|selectattr('is_active')|list %}
+    {% if active_meds %}
+    <div class="mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">💊 Currently Taking</h3>
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b border-gray-200 dark:border-gray-700">
+                    <th class="py-2 pr-4">Medication</th>
+                    <th class="py-2 pr-4">Dosage</th>
+                    <th class="py-2 pr-4">Frequency</th>
+                    <th class="py-2">Since</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in active_meds %}
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <td class="py-2 pr-4 font-medium">{{ m.name }}</td>
+                    <td class="py-2 pr-4">{{ m.dosage or '—' }}</td>
+                    <td class="py-2 pr-4">{{ m.frequency or '—' }}</td>
+                    <td class="py-2">{{ m.start_date.isoformat() if m.start_date else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Vaccination history -->
+    {% if vaccinations %}
+    <div class="mb-8">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">💉 Vaccination History</h3>
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="text-left text-xs uppercase text-gray-500 border-b border-gray-200 dark:border-gray-700">
+                    <th class="py-2 pr-4">Vaccine</th>
+                    <th class="py-2 pr-4">Given</th>
+                    <th class="py-2 pr-4">Next Due</th>
+                    <th class="py-2">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in vaccinations %}
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                    <td class="py-2 pr-4 font-medium">{{ v.vaccine_type }}</td>
+                    <td class="py-2 pr-4">{{ v.date_given.isoformat() }}</td>
+                    <td class="py-2 pr-4">{{ v.date_due.isoformat() if v.date_due else '—' }}</td>
+                    <td class="py-2">
+                        {% if v.date_due and v.date_due < today %}<span class="text-red-600 font-medium">Overdue</span>
+                        {% elif v.date_due %}<span class="text-green-600">Current</span>
+                        {% else %}—{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Visit history -->
+    {% if visits %}
+    <div>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">🏥 Visit History</h3>
+        {% for v in visits %}
+        <div class="mb-4 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
+            <div class="flex items-center justify-between">
+                <p class="font-medium text-gray-900 dark:text-white">{{ v.reason }}</p>
+                <span class="text-sm text-gray-500">{{ v.date.isoformat() }}</span>
+            </div>
+            {% if v.vet_name %}<p class="text-sm text-gray-600">{{ v.vet_name }}</p>{% endif %}
+            {% if v.notes %}<p class="text-sm text-gray-600 mt-1">{{ v.notes }}</p>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Notes -->
+    {% if dog.notes %}
+    <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">📝 Owner Notes</h3>
+        <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ dog.notes }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

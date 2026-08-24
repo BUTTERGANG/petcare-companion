@@ -14,6 +14,54 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Weight Chart -->
+        <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">📈 Weight Trend</h2>
+            {% if weights|length >= 2 %}
+            <canvas id="weightChart" height="120"></canvas>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+            <script>
+            const ctx = document.getElementById('weightChart');
+            const chartData = {{ chart_data | tojson }};
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Weight (kg)',
+                        data: chartData.values,
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#16a34a',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: 'rgba(128, 128, 128, 0.1)' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+            </script>
+            {% else %}
+            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+                Log at least 2 weight records to see a trend chart.
+            </p>
+            {% endif %}
+        </div>
+
         <!-- Meals -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">🍽️ Recent Meals</h2>
