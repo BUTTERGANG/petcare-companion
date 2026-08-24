@@ -61,6 +61,7 @@ class Dog(Base):
     medications = relationship("Medication", back_populates="dog", cascade="all, delete-orphan")
     meals = relationship("Meal", back_populates="dog", cascade="all, delete-orphan")
     weight_records = relationship("WeightRecord", back_populates="dog", cascade="all, delete-orphan")
+    grooming_logs = relationship("GroomingLog", back_populates="dog", cascade="all, delete-orphan")
 
 
 class VetVisit(Base):
@@ -140,3 +141,16 @@ class WeightRecord(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     dog = relationship("Dog", back_populates="weight_records")
+
+
+class GroomingLog(Base):
+    __tablename__ = "grooming_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    dog_id = Column(Integer, ForeignKey("dogs.id"), nullable=False)
+    date = Column(Date, nullable=False)
+    activity = Column(String(50), nullable=False)  # bath, nails, ears, teeth, brush, haircut
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    dog = relationship("Dog", back_populates="grooming_logs")

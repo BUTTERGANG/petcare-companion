@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from .database import init_db, get_session, async_session
-from .models import Breed, Dog, VetVisit, Vaccination, Medication, Meal, WeightRecord
+from .models import Breed, Dog, VetVisit, Vaccination, Medication, Meal, WeightRecord, GroomingLog
 from .schemas import (
     DogCreate, DogUpdate, DogOut, DogSummary, BreedOut,
     VetVisitCreate, VetVisitOut,
@@ -27,6 +27,7 @@ from .auth import (
     read_session_token, SESSION_COOKIE,
 )
 import json
+import uuid
 
 app = FastAPI(title="PetCare Companion")
 
@@ -158,13 +159,13 @@ async def logout():
 
 
 # ===================== AUTH MIDDLEWARE =====================
-# Protect everything except /login, /static, /uploads
+# Protect everything except /login, /static, /uploads, /api/reminders
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
     public_paths = ("/login", "/static", "/uploads")
-    if path.startswith(public_paths):
+    if path.startswith(public_paths) or path == "/api/reminders":
         return await call_next(request)
     if not is_authenticated(request):
         return RedirectResponse(url="/login", status_code=303)
@@ -477,12 +478,26 @@ async def add_vet_visit(
     reason: str = Form(...),
     notes: Optional[str] = Form(None),
     cost: Optional[float] = Form(None),
+    attachments: list[UploadFile] = File(None),
     session: AsyncSession = Depends(get_session),
 ):
     try:
         visit_date = date.fromisoformat(date_str)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format")
+
+    # Save uploaded attachments
+    attachment_paths = []
+    if attachments:
+        for att in attachments:
+            if not att or not att.filename:
+                continue
+            ext = os.path.splitext(att.filename)[1][:10]
+            filename = f"visit_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}{ext}"
+            dest = os.path.join(UPLOAD_DIR, filename)
+            with open(dest, "wb") as f:
+                f.write(await att.read())
+            attachment_paths.append({"path": f"/uploads/{filename}", "name": att.filename})
 
     visit = VetVisit(
         dog_id=dog_id,
@@ -491,6 +506,7 @@ async def add_vet_visit(
         reason=reason,
         notes=notes or None,
         cost=cost,
+        attachment_paths=attachment_paths or None,
     )
     session.add(visit)
     await session.commit()
@@ -875,6 +891,133 @@ async def vet_report(request: Request, dog_id: int, session: AsyncSession = Depe
         "medications": meds,
         "today": date.today(),
     })
+
+
+# ===================== GROOMING ROUTES =====================
+
+GROOMING_ACTIVITIES = ["bath", "nails", "ears", "teeth", "brush", "haircut"]
+
+# Suggested interval (days) per activity; breed grooming_freq can refine this later
+GROOMING_INTERVALS = {"bath": 30, "nails": 21, "ears": 14, "teeth": 7, "brush": 3, "haircut": 60}
+
+
+@app.get("/dogs/{dog_id}/grooming", response_class=HTMLResponse)
+async def grooming_dashboard(request: Request, dog_id: int, session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Dog).options(joinedload(Dog.breed)).where(Dog.id == dog_id))
+    dog = result.scalars().first()
+    if not dog:
+        raise HTTPException(status_code=404)
+    logs_result = await session.execute(
+        select(GroomingLog).where(GroomingLog.dog_id == dog_id).order_by(desc(GroomingLog.date)).limit(50)
+    )
+    logs = logs_result.scalars().all()
+
+    # Compute due status per activity
+    today = date.today()
+    activities = []
+    for act in GROOMING_ACTIVITIES:
+        last = next((l for l in logs if l.activity == act), None)  # logs sorted desc, so first match is latest
+        last_date = last.date if last else None
+        interval = GROOMING_INTERVALS[act]
+        if last_date:
+            due_date = date.fromordinal(last_date.toordinal() + interval)
+            days_until = (due_date - today).days
+            status = "overdue" if days_until < 0 else ("due_soon" if days_until <= 3 else "ok")
+        else:
+            due_date = None
+            days_until = None
+            status = "never"
+        activities.append({
+            "activity": act, "last_date": last_date, "due_date": due_date,
+            "days_until": days_until, "status": status, "interval": interval,
+        })
+
+    return templates.TemplateResponse(request, "grooming/dashboard.html", {
+        "request": request, "dog": dog, "logs": logs, "activities": activities,
+        "today": today,
+    })
+
+
+@app.post("/dogs/{dog_id}/grooming/log")
+async def log_grooming(
+    dog_id: int,
+    activity: str = Form(...),
+    date_str: str = Form(...),
+    notes: Optional[str] = Form(None),
+    session: AsyncSession = Depends(get_session),
+):
+    if activity not in GROOMING_ACTIVITIES:
+        raise HTTPException(status_code=400, detail="Invalid activity")
+    try:
+        log_date = date.fromisoformat(date_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date")
+    log = GroomingLog(dog_id=dog_id, date=log_date, activity=activity, notes=notes or None)
+    session.add(log)
+    await session.commit()
+    return RedirectResponse(url=f"/dogs/{dog_id}/grooming", status_code=303)
+
+
+@app.post("/grooming/{log_id}/delete")
+async def delete_grooming(log_id: int, session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(GroomingLog).where(GroomingLog.id == log_id))
+    log = result.scalars().first()
+    if not log:
+        raise HTTPException(status_code=404)
+    dog_id = log.dog_id
+    await session.delete(log)
+    await session.commit()
+    return RedirectResponse(url=f"/dogs/{dog_id}/grooming", status_code=303)
+
+
+# ===================== REMINDERS API =====================
+
+@app.get("/api/reminders")
+async def reminders_api(days: int = Query(30), session: AsyncSession = Depends(get_session)):
+    """JSON endpoint for reminder checks (used by cron / external monitors)."""
+    today = date.today()
+    reminders = []
+    dogs_result = await session.execute(select(Dog))
+    dogs = {d.id: d.name for d in dogs_result.scalars().all()}
+
+    vax_result = await session.execute(
+        select(Vaccination).where(
+            Vaccination.reminder_enabled == True,
+            Vaccination.date_due.isnot(None),
+        )
+    )
+    for v in vax_result.scalars().all():
+        days_until = (v.date_due - today).days
+        if 0 <= days_until <= days:
+            reminders.append({
+                "type": "vaccination", "dog_id": v.dog_id, "dog_name": dogs.get(v.dog_id),
+                "item": v.vaccine_type, "due_date": v.date_due.isoformat(), "days_until": days_until,
+            })
+        elif days_until < 0:
+            reminders.append({
+                "type": "vaccination_overdue", "dog_id": v.dog_id, "dog_name": dogs.get(v.dog_id),
+                "item": v.vaccine_type, "due_date": v.date_due.isoformat(), "days_until": days_until,
+            })
+
+    # Grooming overdue
+    for dog_id_str, dog_name in dogs.items():
+        dog_id_int = int(dog_id_str)
+        logs_result = await session.execute(
+            select(GroomingLog).where(GroomingLog.dog_id == dog_id_int).order_by(desc(GroomingLog.date))
+        )
+        logs = logs_result.scalars().all()
+        for act in GROOMING_ACTIVITIES:
+            last = next((l for l in logs if l.activity == act), None)
+            if last:
+                due = date.fromordinal(last.date.toordinal() + GROOMING_INTERVALS[act])
+                days_until = (due - today).days
+                if days_until < 0:
+                    reminders.append({
+                        "type": "grooming_overdue", "dog_id": dog_id_int, "dog_name": dog_name,
+                        "item": act, "due_date": due.isoformat(), "days_until": days_until,
+                    })
+    reminders.sort(key=lambda r: r["days_until"])
+    return JSONResponse({"generated": today.isoformat(), "reminders": reminders})
 
 
 # ===================== BREED ROUTES =====================

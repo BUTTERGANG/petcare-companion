@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Grooming — {{ dog.name }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <a href="/dogs/{{ dog.id }}" class="text-sm text-paw-600 dark:text-paw-400 hover:underline">&larr; Back to {{ dog.name }}</a>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mt-1">✂️ Grooming</h1>
+        {% if dog.breed and dog.breed.grooming_freq %}
+        <p class="text-sm text-gray-500 dark:text-gray-400">Breed guidance: {{ dog.breed.grooming_freq }}</p>
+        {% endif %}
+    </div>
+
+    <!-- Activity status cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {% for a in activities %}
+        <div class="{% if a.status == 'overdue' %}bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800{% elif a.status == 'due_soon' %}bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800{% else %}bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700{% endif %} rounded-xl shadow-sm border p-4 text-center">
+            <p class="text-sm font-medium text-gray-900 dark:text-white capitalize">{{ a.activity }}</p>
+            {% if a.last_date %}
+            <p class="text-xs text-gray-500 mt-1">{{ a.days_until }}d {{ 'overdue' if a.days_until < 0 else 'left' }}</p>
+            {% if a.due_date %}<p class="text-xs text-gray-400">due {{ a.due_date.isoformat() }}</p>{% endif %}
+            {% else %}
+            <p class="text-xs text-gray-400 mt-1">Never logged</p>
+            {% endif %}
+            <form method="post" action="/dogs/{{ dog.id }}/grooming/log" class="mt-2">
+                <input type="hidden" name="activity" value="{{ a.activity }}">
+                <input type="hidden" name="date_str" value="{{ today.isoformat() }}">
+                <button type="submit" class="text-xs px-3 py-1 bg-paw-600 text-white rounded-lg hover:bg-paw-700 transition w-full">✓ Done today</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Quick log with custom date -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Log Past Session</h2>
+        <form method="post" action="/dogs/{{ dog.id }}/grooming/log" class="flex flex-wrap items-end gap-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Activity</label>
+                <select name="activity" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm">
+                    {% for act in ['bath','nails','ears','teeth','brush','haircut'] %}
+                    <option value="{{ act }}">{{ act|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date</label>
+                <input type="date" name="date_str" required value="{{ today.isoformat() }}"
+                       class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm">
+            </div>
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes</label>
+                <input type="text" name="notes" placeholder="optional"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm">
+            </div>
+            <button type="submit" class="px-4 py-2 bg-paw-600 text-white text-sm font-medium rounded-lg hover:bg-paw-700 transition">Add Log</button>
+        </form>
+    </div>
+
+    <!-- History -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">History</h2>
+        {% if logs %}
+        <div class="space-y-2">
+            {% for l in logs %}
+            <div class="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                <div>
+                    <span class="text-sm font-medium capitalize text-gray-900 dark:text-white">{{ l.activity }}</span>
+                    <span class="text-xs text-gray-500 ml-2">{{ l.date.isoformat() }}</span>
+                    {% if l.notes %}<span class="text-xs text-gray-500 ml-2">— {{ l.notes }}</span>{% endif %}
+                </div>
+                <form method="post" action="/grooming/{{ l.id }}/delete" onsubmit="return confirm('Delete?')">
+                    <button type="submit" class="text-xs text-red-500 hover:text-red-700">🗑️</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-6">No grooming logged yet. Hit "✓ Done today" on any activity above.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
