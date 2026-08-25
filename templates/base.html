@@ -2,101 +2,98 @@
 <html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#16a34a">
     <title>{% block title %}PetCare Companion{% endblock %}</title>
+    <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+    <link rel="manifest" href="/static/manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                        display: ['Fraunces', 'Georgia', 'serif'],
-                    },
-                    colors: {
-                        paw: {
-                            50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0',
-                            300: '#86efac', 400: '#4ade80', 500: '#22c55e',
-                            600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d',
-                        },
-                    },
-                    boxShadow: {
-                        soft: '0 2px 16px -4px rgba(22, 163, 74, 0.08)',
-                        lift: '0 8px 30px -6px rgba(0, 0, 0, 0.12)',
-                    },
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="/static/css/app.css">
     <style>
         body { font-family: 'Inter', system-ui, sans-serif; }
         .font-display { font-family: 'Fraunces', Georgia, serif; }
-        .card { transition: transform .15s ease, box-shadow .15s ease; }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px -6px rgba(0,0,0,.12); }
         ::selection { background: #bbf7d0; }
         @media print {
             .no-print { display: none !important; }
             body { background: white !important; }
-            main { max-width: 100% !important; padding: 0 !important; }
+            main { max-width: 100% !important; padding: 0 !important; padding-bottom: 0 !important; }
         }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body class="h-full bg-gray-50 dark:bg-gray-950 antialiased">
-    <nav class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200/70 dark:border-gray-800 sticky top-0 z-40">
+
+    <!-- Desktop / tablet nav -->
+    <nav class="no-print bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200/70 dark:border-gray-800 sticky top-0 z-40 hidden md:block">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center justify-between w-full">
-                    <div class="flex items-center space-x-10">
-                        <a href="/" class="flex items-center space-x-2 group">
-                            <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-paw-500 to-paw-700 flex items-center justify-center text-white text-lg shadow-soft group-hover:scale-105 transition">🐾</span>
-                            <span class="font-display font-bold text-lg text-gray-900 dark:text-white tracking-tight">PetCare<span class="text-paw-600">Companion</span></span>
-                        </a>
-                        <div class="hidden sm:flex sm:space-x-1">
-                            {% set nav = [
-                                ('/', 'Dashboard'),
-                                ('/dogs/add', '+ Add Dog'),
-                                ('/breeds', 'Breed Guide'),
-                                ('/symptom-checker', 'Symptom Checker'),
-                                ('/feeding-calculator', 'Feeding'),
-                                ('/toxic-foods', 'Toxic Foods'),
-                            ] %}
-                            {% for path, label in nav %}
-                            <a href="{{ path }}" class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-paw-700 hover:bg-paw-50 dark:hover:bg-gray-800 transition">{{ label }}</a>
-                            {% endfor %}
-                        </div>
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-10 w-full justify-between">
+                    <a href="/" class="flex items-center space-x-2 group shrink-0">
+                        <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-paw-500 to-paw-700 flex items-center justify-center text-white text-lg shadow-soft group-hover:scale-105 transition">🐾</span>
+                        <span class="font-display font-bold text-lg text-gray-900 dark:text-white tracking-tight">PetCare<span class="text-paw-600">Companion</span></span>
+                    </a>
+                    {% set nav = [
+                        ('/', 'Dashboard', 'index'),
+                        ('/dogs/add', '+ Add Dog', None),
+                        ('/breeds', 'Breed Guide', 'breeds'),
+                        ('/symptom-checker', 'Symptom Checker', 'symptoms'),
+                        ('/feeding-calculator', 'Feeding', 'feeding'),
+                        ('/toxic-foods', 'Toxic Foods', 'toxic'),
+                    ] %}
+                    {% set p = request.url.path if request else '' %}
+                    {% set current = 'breeds' if p.startswith('/breeds') else ('symptoms' if p.startswith('/symptom') else ('feeding' if p.startswith('/feeding') else ('toxic' if p.startswith('/toxic') else ('index' if p == '/' else '')))) %}
+                    <div class="flex space-x-1">
+                        {% for path, label, key in nav %}
+                        <a href="{{ path }}" {% if key and current == key %}aria-current="page" class="px-3 py-2 rounded-lg text-sm font-semibold bg-paw-100 dark:bg-paw-900/60 text-paw-700 dark:text-paw-300"{% else %}class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-paw-700 hover:bg-paw-50 dark:hover:bg-gray-800 transition"{% endif %}>{{ label }}</a>
+                        {% endfor %}
                     </div>
-                    <form method="post" action="/logout" class="hidden sm:block">
+                    <form method="post" action="/logout">
                         <button type="submit" class="text-sm font-medium text-gray-400 hover:text-red-600 transition">Sign out</button>
                     </form>
                 </div>
             </div>
         </div>
-        <!-- Mobile nav -->
-        <div class="sm:hidden border-t border-gray-100 dark:border-gray-800 px-4 py-2 flex gap-1 overflow-x-auto">
-            <a href="/" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400">Dashboard</a>
-            <a href="/dogs/add" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400">+ Add Dog</a>
-            <a href="/breeds" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400">Breeds</a>
-            <a href="/symptom-checker" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400">Symptoms</a>
-            <a href="/feeding-calculator" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400">Feeding</a>
-            <a href="/toxic-foods" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400">Toxic Foods</a>
-        </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <!-- Breadcrumbs -->
+    {% block breadcrumbs %}{% endblock %}
+
+    <!-- Page content (bottom padding clears mobile tab bar) -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="border-t border-gray-200 dark:border-gray-800 mt-12">
+    <footer class="no-print border-t border-gray-200 dark:border-gray-800 mt-12 pb-20 md:pb-0">
         <div class="max-w-7xl mx-auto py-6 px-4 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-gray-400">
             <p>🐾 PetCare Companion — less time at the vet, more time with your dog</p>
             <p>Not veterinary advice. Always consult your vet.</p>
         </div>
     </footer>
+
+    <!-- Mobile bottom tab bar -->
+    <nav class="md:hidden no-print fixed bottom-0 inset-x-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 pb-safe" aria-label="Main navigation">
+        <div class="grid grid-cols-5 h-16">
+            {% set tabs = [
+                ('/', 'Home', '🏠', 'index'),
+                ('/dogs/add', 'Add', '➕', None),
+                ('/symptom-checker', 'Symptoms', '🩺', 'symptoms'),
+                ('/breeds', 'Breeds', '📚', 'breeds'),
+                ('/feeding-calculator', 'Tools', '🍽️', 'tools'),
+            ] %}
+            {% set p = request.url.path if request else '' %}
+            {% set current = 'breeds' if p.startswith('/breeds') else ('symptoms' if p.startswith('/symptom') else ('feeding' if p.startswith('/feeding') else ('toxic' if p.startswith('/toxic') else ('index' if p == '/' else '')))) %}
+            {% for path, label, icon, key in tabs %}
+            <a href="{{ path }}" {% if key and current == key %}aria-current="page"{% endif %}
+               class="flex flex-col items-center justify-center gap-0.5 {% if key and current == key %}text-paw-600 dark:text-paw-400{% else %}text-gray-400{% endif %}">
+                <span class="text-xl leading-none">{{ icon }}</span>
+                <span class="text-[10px] font-medium">{{ label }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </nav>
 
     <script>
         if (window.matchMedia('(prefers-color-scheme: dark)').matches) {

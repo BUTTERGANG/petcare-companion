@@ -1,0 +1,14 @@
+{% macro crumbs(items) %}
+{# items: list of (href_or_None, label) #}
+<nav class="no-print flex items-center gap-1.5 text-sm text-gray-400 mb-4" aria-label="Breadcrumb">
+    <a href="/" class="hover:text-paw-600 transition">Home</a>
+    {% for href, label in items %}
+    <span class="text-gray-300 dark:text-gray-700">/</span>
+    {% if loop.last or not href %}
+    <span class="text-gray-600 dark:text-gray-300 font-medium">{{ label }}</span>
+    {% else %}
+    <a href="{{ href }}" class="hover:text-paw-600 transition">{{ label }}</a>
+    {% endif %}
+    {% endfor %}
+</nav>
+{% endmacro %}

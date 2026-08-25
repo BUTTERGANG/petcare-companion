@@ -1,0 +1,16 @@
+{
+    "name": "PetCare Companion",
+    "short_name": "PetCare",
+    "description": "Medical records, breed reference, nutrition and symptom guidance for your dogs.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f9fafb",
+    "theme_color": "#16a34a",
+    "icons": [
+        {
+            "src": "/static/img/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

@@ -1,121 +1,124 @@
-{% extends "base.html" %}
+1|{% extends "base.html" %}
+{% from "_macros.html" import crumbs %}
+2|
 {% block title %}{{ dog.name }} — PetCare Companion{% endblock %}
 {% block content %}
+{{ crumbs([(None, dog.name)]) }}
 <div class="space-y-6">
     <!-- Header -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-center space-x-4">
-                <div class="w-20 h-20 rounded-full bg-paw-100 dark:bg-paw-900 flex items-center justify-center overflow-hidden text-3xl flex-shrink-0">
-                    {% if dog.photo_path %}
-                    <img src="{{ dog.photo_path }}" alt="{{ dog.name }}" class="w-full h-full object-cover">
-                    {% else %}
-                    🐕
-                    {% endif %}
-                </div>
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ dog.name }}</h1>
-                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-400">
-                        {% if dog.breed %}
-                        <span class="text-paw-600 dark:text-paw-400 font-medium">{{ dog.breed.name }}</span>
-                        {% else %}
-                        <span>Unknown breed</span>
-                        {% endif %}
-                        {% if age_str %}<span>· {{ age_str }}</span>{% endif %}
-                        {% if dog.sex %}<span>· {{ dog.sex|capitalize }}</span>{% endif %}
-                        {% if dog.spayed_neutered %}<span>· ✓ Neutered</span>{% endif %}
-                    </div>
-                    {% if dog.weight %}<p class="text-sm text-gray-500 mt-1">{{ dog.weight }} kg</p>{% endif %}
-                    {% if dog.microchip_id %}<p class="text-sm text-gray-500">Microchip: {{ dog.microchip_id }}</p>{% endif %}
-                </div>
-            </div>
-            <div class="flex space-x-2">
-                <a href="/dogs/{{ dog.id }}/edit" class="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">✏️ Edit</a>
-                <form method="post" action="/dogs/{{ dog.id }}/delete" onsubmit="return confirm('Delete {{ dog.name }} and all medical records?')" class="inline">
-                    <button type="submit" class="px-3 py-1.5 text-sm text-red-600 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30">🗑️ Delete</button>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Breed Info Card (if breed known) -->
-    {% if dog.breed %}
-    <div class="bg-paw-50 dark:bg-paw-900/30 rounded-xl border border-paw-200 dark:border-paw-800 p-5">
-        <div class="flex items-center justify-between mb-3">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">📚 Breed: {{ dog.breed.name }}</h2>
-            <a href="/breeds/{{ dog.breed.id }}" class="text-sm text-paw-600 dark:text-paw-400 font-medium hover:underline">View breed info →</a>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Size</p>
-                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.size_category|capitalize if dog.breed.size_category else '—' }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Lifespan</p>
-                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.lifespan_years or '—' }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Energy</p>
-                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.energy_level|capitalize if dog.breed.energy_level else '—' }}</p>
-            </div>
-            <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Shedding</p>
-                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.shedding_level|capitalize if dog.breed.shedding_level else '—' }}</p>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Quick Actions -->
-    <div class="flex flex-wrap gap-3">
-        <a href="/dogs/{{ dog.id }}/nutrition" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">🍽️ Nutrition</a>
-        <a href="/dogs/{{ dog.id }}/grooming" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">✂️ Grooming</a>
-        <a href="/dogs/{{ dog.id }}/vet-report" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">📋 Vet Report</a>
-        <a href="/dogs/{{ dog.id }}/vet-visits/add" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">🏥 Add Vet Visit</a>
-        <a href="/dogs/{{ dog.id }}/vaccinations/add" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">💉 Add Vaccination</a>
-        <a href="/dogs/{{ dog.id }}/medications/add" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">💊 Add Medication</a>
-        <a href="/dogs/{{ dog.id }}/edit" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">✏️ Edit Profile</a>
-    </div>
-
-    <!-- Timeline -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">📅 History Timeline</h2>
-            <div class="text-xs text-gray-500">{{ timeline|length }} events</div>
-        </div>
-
-        {% if timeline %}
-        <div class="relative pl-6 space-y-6">
-            <div class="timeline-line bg-gray-200 dark:bg-gray-700"></div>
-            {% for e in timeline %}
-            <div class="relative">
-                <span class="timeline-dot {% if e.type == 'vet_visit' %}bg-blue-500{% elif e.type == 'vaccination' %}bg-green-500{% else %}bg-purple-500{% endif %}"></span>
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">
-                            <span class="mr-1">{{ e.icon }}</span> {{ e.title }}
-                        </p>
-                        {% if e.subtitle %}<p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{{ e.subtitle }}</p>{% endif %}
-                    </div>
-                    <span class="text-xs text-gray-500 whitespace-nowrap">{{ e.date }}</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-            <p class="mb-3">No medical history yet for {{ dog.name }}.</p>
-            <p class="text-sm">Use the buttons above to add vet visits, vaccinations, or medications.</p>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Notes -->
-    {% if dog.notes %}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">📝 Notes</h2>
-        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ dog.notes }}</p>
-    </div>
-    {% endif %}
-</div>
-{% endblock %}
+6|    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+7|        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+8|            <div class="flex items-center space-x-4">
+9|                <div class="w-20 h-20 rounded-full bg-paw-100 dark:bg-paw-900 flex items-center justify-center overflow-hidden text-3xl flex-shrink-0">
+10|                    {% if dog.photo_path %}
+11|                    <img src="{{ dog.photo_path }}" alt="{{ dog.name }}" class="w-full h-full object-cover">
+12|                    {% else %}
+13|                    🐕
+14|                    {% endif %}
+15|                </div>
+16|                <div>
+17|                    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ dog.name }}</h1>
+18|                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-400">
+19|                        {% if dog.breed %}
+20|                        <span class="text-paw-600 dark:text-paw-400 font-medium">{{ dog.breed.name }}</span>
+21|                        {% else %}
+22|                        <span>Unknown breed</span>
+23|                        {% endif %}
+24|                        {% if age_str %}<span>· {{ age_str }}</span>{% endif %}
+25|                        {% if dog.sex %}<span>· {{ dog.sex|capitalize }}</span>{% endif %}
+26|                        {% if dog.spayed_neutered %}<span>· ✓ Neutered</span>{% endif %}
+27|                    </div>
+28|                    {% if dog.weight %}<p class="text-sm text-gray-500 mt-1">{{ dog.weight }} kg</p>{% endif %}
+29|                    {% if dog.microchip_id %}<p class="text-sm text-gray-500">Microchip: {{ dog.microchip_id }}</p>{% endif %}
+30|                </div>
+31|            </div>
+32|            <div class="flex space-x-2">
+33|                <a href="/dogs/{{ dog.id }}/edit" class="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">✏️ Edit</a>
+34|                <form method="post" action="/dogs/{{ dog.id }}/delete" onsubmit="return confirm('Delete {{ dog.name }} and all medical records?')" class="inline">
+35|                    <button type="submit" class="px-3 py-1.5 text-sm text-red-600 border border-red-300 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30">🗑️ Delete</button>
+36|                </form>
+37|            </div>
+38|        </div>
+39|    </div>
+40|
+41|    <!-- Breed Info Card (if breed known) -->
+42|    {% if dog.breed %}
+43|    <div class="bg-paw-50 dark:bg-paw-900/30 rounded-xl border border-paw-200 dark:border-paw-800 p-5">
+44|        <div class="flex items-center justify-between mb-3">
+45|            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">📚 Breed: {{ dog.breed.name }}</h2>
+46|            <a href="/breeds/{{ dog.breed.id }}" class="text-sm text-paw-600 dark:text-paw-400 font-medium hover:underline">View breed info →</a>
+47|        </div>
+48|        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+49|            <div>
+50|                <p class="text-xs text-gray-500 dark:text-gray-400">Size</p>
+51|                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.size_category|capitalize if dog.breed.size_category else '—' }}</p>
+52|            </div>
+53|            <div>
+54|                <p class="text-xs text-gray-500 dark:text-gray-400">Lifespan</p>
+55|                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.lifespan_years or '—' }}</p>
+56|            </div>
+57|            <div>
+58|                <p class="text-xs text-gray-500 dark:text-gray-400">Energy</p>
+59|                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.energy_level|capitalize if dog.breed.energy_level else '—' }}</p>
+60|            </div>
+61|            <div>
+62|                <p class="text-xs text-gray-500 dark:text-gray-400">Shedding</p>
+63|                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ dog.breed.shedding_level|capitalize if dog.breed.shedding_level else '—' }}</p>
+64|            </div>
+65|        </div>
+66|    </div>
+67|    {% endif %}
+68|
+69|    <!-- Quick Actions -->
+70|    <div class="flex flex-wrap gap-3">
+71|        <a href="/dogs/{{ dog.id }}/nutrition" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">🍽️ Nutrition</a>
+72|        <a href="/dogs/{{ dog.id }}/grooming" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">✂️ Grooming</a>
+73|        <a href="/dogs/{{ dog.id }}/vet-report" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">📋 Vet Report</a>
+74|        <a href="/dogs/{{ dog.id }}/vet-visits/add" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">🏥 Add Vet Visit</a>
+75|        <a href="/dogs/{{ dog.id }}/vaccinations/add" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">💉 Add Vaccination</a>
+76|        <a href="/dogs/{{ dog.id }}/medications/add" class="px-4 py-2 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition text-sm">💊 Add Medication</a>
+77|        <a href="/dogs/{{ dog.id }}/edit" class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">✏️ Edit Profile</a>
+78|    </div>
+79|
+80|    <!-- Timeline -->
+81|    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+82|        <div class="flex items-center justify-between mb-6">
+83|            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">📅 History Timeline</h2>
+84|            <div class="text-xs text-gray-500">{{ timeline|length }} events</div>
+85|        </div>
+86|
+87|        {% if timeline %}
+88|        <div class="relative pl-6 space-y-6">
+89|            <div class="timeline-line bg-gray-200 dark:bg-gray-700"></div>
+90|            {% for e in timeline %}
+91|            <div class="relative">
+92|                <span class="timeline-dot {% if e.type == 'vet_visit' %}bg-blue-500{% elif e.type == 'vaccination' %}bg-green-500{% else %}bg-purple-500{% endif %}"></span>
+93|                <div class="flex items-start justify-between gap-4">
+94|                    <div>
+95|                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+96|                            <span class="mr-1">{{ e.icon }}</span> {{ e.title }}
+97|                        </p>
+98|                        {% if e.subtitle %}<p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{{ e.subtitle }}</p>{% endif %}
+99|                    </div>
+100|                    <span class="text-xs text-gray-500 whitespace-nowrap">{{ e.date }}</span>
+101|                </div>
+102|            </div>
+103|            {% endfor %}
+104|        </div>
+105|        {% else %}
+106|        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+107|            <p class="mb-3">No medical history yet for {{ dog.name }}.</p>
+108|            <p class="text-sm">Use the buttons above to add vet visits, vaccinations, or medications.</p>
+109|        </div>
+110|        {% endif %}
+111|    </div>
+112|
+113|    <!-- Notes -->
+114|    {% if dog.notes %}
+115|    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+116|        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">📝 Notes</h2>
+117|        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ dog.notes }}</p>
+118|    </div>
+119|    {% endif %}
+120|</div>
+121|{% endblock %}

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import crumbs %}
 {% block title %}Vet Report — {{ dog.name }}{% endblock %}
 {% block extra_head %}
 <style>
@@ -12,8 +13,9 @@
 </style>
 {% endblock %}
 {% block content %}
+{{ crumbs([(None, dog.name)]) }}
+
 <div class="no-print flex items-center justify-between mb-4">
-    <a href="/dogs/{{ dog.id }}" class="text-sm text-paw-600 dark:text-paw-400 hover:underline">&larr; Back to {{ dog.name }}</a>
     <button onclick="window.print()" class="px-4 py-2 bg-paw-600 text-white text-sm font-medium rounded-lg hover:bg-paw-700 transition">🖨️ Print / Save PDF</button>
 </div>
 
