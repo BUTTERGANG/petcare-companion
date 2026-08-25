@@ -100,6 +100,26 @@ Built as a FastAPI PWA (server-rendered Jinja2 + Tailwind) that serves two jobs:
 
 ---
 
+## Expansion Vision (product direction)
+
+**Positioning:** "Less time at the vet, more time with your dog" — for owners who want accurate breed info and proactive care, not reactive vet trips.
+
+### Track 1 — Premium pet-owner app (this repo)
+- Deepen the "reduce vet visits" loop: symptom checker → urgency triage → only book when needed
+- More breed data (OFA elbow, cardiac, eye stats), feeding calculator, toxic-foods lookup
+
+### Track 2 — Multi-species expansion
+- Generalize `Dog`→`Animal`, `Breed`→`Species + Breed` schema (cats, birds, exotics)
+- Large-animal module: horses, cattle, goats — different care model (herds vs individuals)
+
+### Track 3 — Vet knowledge bases (B2B, Alex's vet friend)
+- Structured KBs per species: conditions × symptoms × urgency × breed predisposition
+- Same symptom-triage engine powering the owner app, pointed at professional content
+- Fast question-answer lookups for people working with large animals
+- Natural evolution: owner app is the funnel; vet/pro KB is the paid tier
+
+---
+
 ## For Replit
 
 Deployment target. Prep needed:

@@ -1,120 +1,143 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — PetCare Companion{% endblock %}
 {% block content %}
-<div class="space-y-6">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">🐾 PetCare Dashboard</h1>
+<div class="space-y-8">
+
+    <!-- Hero -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-paw-600 via-paw-700 to-emerald-900 p-8 sm:p-10 text-white shadow-lift">
+        <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 20% 50%, white 1px, transparent 1px); background-size: 24px 24px;"></div>
+        <div class="relative">
+            <p class="text-paw-200 text-sm font-medium uppercase tracking-wider">{{ today.strftime('%A, %B %d') }}</p>
+            <h1 class="font-display text-3xl sm:text-4xl font-bold mt-1">
+                {% if upcoming_vax %}{{ upcoming_vax|length }} thing{{ 's' if upcoming_vax|length > 1 }} need your attention{% else %}Everyone's healthy today 🎉{% endif %}
+            </h1>
+            <p class="mt-2 text-paw-100 max-w-xl">Less time at the vet, more time with your dogs. Everything about their care in one place.</p>
+        </div>
+        <div class="absolute -right-6 -bottom-8 text-[10rem] opacity-15 select-none pointer-events-none">🐕</div>
+    </div>
 
     {% if not dogs %}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
-        <div class="text-6xl mb-4">🐕</div>
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Welcome to PetCare Companion!</h2>
-        <p class="text-gray-600 dark:text-gray-400 mb-6">Add your first dog to get started tracking medical records, vaccinations, and more.</p>
-        <a href="/dogs/add" class="inline-flex items-center px-6 py-3 bg-paw-600 text-white font-medium rounded-lg hover:bg-paw-700 transition">
+    <!-- Empty state -->
+    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-16 text-center">
+        <div class="text-7xl mb-4">🐶</div>
+        <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome! Add your first dog</h2>
+        <p class="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">Track medical records, vaccinations, nutrition and grooming — all linked to breed-specific health guidance for {{ 123 }} breeds.</p>
+        <a href="/dogs/add" class="inline-flex items-center gap-2 px-8 py-4 bg-paw-600 text-white font-semibold rounded-xl hover:bg-paw-700 transition shadow-soft">
             + Add Your First Dog
         </a>
     </div>
     {% else %}
 
-    <!-- Dog Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for d in dogs %}
-        <a href="/dogs/{{ d.id }}" class="block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-paw-400 dark:hover:border-paw-600 transition overflow-hidden">
-            <div class="p-5">
-                <div class="flex items-center space-x-4">
-                    <div class="w-16 h-16 rounded-full bg-paw-100 dark:bg-paw-900 flex items-center justify-center overflow-hidden flex-shrink-0 text-2xl">
-                        {% if d.photo_path %}
-                        <img src="{{ d.photo_path }}" alt="{{ d.name }}" class="w-full h-full object-cover">
-                        {% else %}
-                        🐕
-                        {% endif %}
-                    </div>
-                    <div class="min-w-0">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">{{ d.name }}</h3>
-                        {% if d.breed_name %}
-                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ d.breed_name }}</p>
-                        {% endif %}
-                        {% if d.age_str %}
-                        <p class="text-xs text-gray-500 dark:text-gray-500">{{ d.age_str }} old</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </a>
-        {% endfor %}
+    <!-- Stat tiles -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ dogs|length }}</p>
+            <p class="text-sm text-gray-500 mt-0.5">🐾 Dogs</p>
+        </div>
+        <div class="card bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-100 dark:border-red-900 p-5">
+            <p class="text-3xl font-bold text-red-600">{{ upcoming_vax|selectattr('days_until', 'lt', 0)|list|length }}</p>
+            <p class="text-sm text-red-400 mt-0.5">🔴 Overdue vaccines</p>
+        </div>
+        <div class="card bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-100 dark:border-amber-900 p-5">
+            <p class="text-3xl font-bold text-amber-600">{{ upcoming_vax|selectattr('days_until', 'ge', 0)|list|length }}</p>
+            <p class="text-sm text-amber-500 mt-0.5">🟡 Due soon</p>
+        </div>
+        <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+            <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ active_meds|length }}</p>
+            <p class="text-sm text-gray-500 mt-0.5">💊 Active meds</p>
+        </div>
     </div>
 
-    <!-- Reminders & Recent Activity -->
+    <!-- Dog cards -->
+    <section>
+        <h2 class="font-display text-xl font-semibold text-gray-900 dark:text-white mb-4">Your Pack</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {% for d in dogs %}
+            <a href="/dogs/{{ d.id }}" class="card group bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+                <div class="h-28 bg-gradient-to-br from-paw-100 to-paw-200 dark:from-paw-900/60 dark:to-gray-800 flex items-center justify-center relative">
+                    {% if d.photo_path %}
+                    <img src="{{ d.photo_path }}" alt="{{ d.name }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <span class="text-5xl group-hover:scale-110 transition">🐕</span>
+                    {% endif %}
+                </div>
+                <div class="p-5">
+                    <h3 class="font-semibold text-lg text-gray-900 dark:text-white">{{ d.name }}</h3>
+                    <p class="text-sm text-paw-600 dark:text-paw-400 font-medium">{{ d.breed_name or 'Mixed / unknown' }}</p>
+                    {% if d.age_str %}<p class="text-xs text-gray-400 mt-1">{{ d.age_str }} old</p>{% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Attention needed -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Upcoming Vaccinations -->
-        <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">💉 Upcoming Vaccinations</h2>
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+            <h2 class="font-display text-lg font-semibold text-gray-900 dark:text-white mb-4">💉 Vaccine Schedule</h2>
             {% if upcoming_vax %}
             <div class="space-y-3">
                 {% for v in upcoming_vax %}
-                <div class="flex items-start space-x-3">
-                    <span class="text-lg">💉</span>
+                <a href="/dogs/{{ v.dog_id }}" class="flex items-start gap-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 p-2 transition">
+                    <span class="mt-0.5">{{ '🔴' if v.days_until < 0 else '🟡' }}</span>
                     <div>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">
-                            <a href="/dogs/{{ v.dog_id }}" class="hover:text-paw-600">{{ v.dog_name }}</a>
-                        </p>
-                        <p class="text-xs text-gray-600 dark:text-gray-400">{{ v.vaccine_type }}</p>
-                        <p class="text-xs {% if v.days_until <= 7 %}text-red-600 font-medium{% else %}text-gray-500{% endif %}">
-                            Due {{ v.date_due.isoformat() }} ({{ v.days_until }} days)
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ v.dog_name }} · {{ v.vaccine_type }}</p>
+                        <p class="text-xs {% if v.days_until < 0 %}text-red-600 font-semibold{% else %}text-amber-600{% endif %}">
+                            {% if v.days_until < 0 %}{{ -(v.days_until) }} days OVERDUE{% else %}Due in {{ v.days_until }} days{% endif %} · {{ v.date_due.isoformat() }}
                         </p>
                     </div>
-                </div>
+                </a>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-sm text-gray-500 dark:text-gray-400">No upcoming vaccinations due.</p>
+            <div class="text-center py-8">
+                <p class="text-4xl mb-2">✅</p>
+                <p class="text-sm text-gray-500">All vaccinations current. Nice work!</p>
+            </div>
             {% endif %}
         </div>
 
-        <!-- Active Medications -->
-        <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">💊 Active Medications</h2>
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+            <h2 class="font-display text-lg font-semibold text-gray-900 dark:text-white mb-4">💊 Medications</h2>
             {% if active_meds %}
             <div class="space-y-3">
                 {% for m in active_meds %}
-                <div class="flex items-start space-x-3">
-                    <span class="text-lg">💊</span>
+                <a href="/dogs/{{ m.dog_id }}" class="flex items-start gap-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 p-2 transition">
+                    <span class="mt-0.5">💊</span>
                     <div>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">
-                            <a href="/dogs/{{ m.dog_id }}" class="hover:text-paw-600">{{ m.dog_name }}</a>
-                        </p>
-                        <p class="text-xs text-gray-600 dark:text-gray-400">{{ m.name }}</p>
-                        {% if m.dosage or m.frequency %}
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ m.dog_name }} · {{ m.name }}</p>
                         <p class="text-xs text-gray-500">{{ m.dosage or '' }} {{ m.frequency or '' }}</p>
-                        {% endif %}
                     </div>
-                </div>
+                </a>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-sm text-gray-500 dark:text-gray-400">No active medications.</p>
+            <div class="text-center py-8">
+                <p class="text-4xl mb-2">💊</p>
+                <p class="text-sm text-gray-500">No active medications.</p>
+            </div>
             {% endif %}
         </div>
 
-        <!-- Recent Vet Visits -->
-        <div class="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">🏥 Recent Vet Visits</h2>
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+            <h2 class="font-display text-lg font-semibold text-gray-900 dark:text-white mb-4">🏥 Recent Visits</h2>
             {% if recent_visits %}
             <div class="space-y-3">
                 {% for v in recent_visits %}
-                <div class="flex items-start space-x-3">
-                    <span class="text-lg">🏥</span>
+                <a href="/dogs/{{ v.dog_id }}" class="flex items-start gap-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 p-2 transition">
+                    <span class="mt-0.5">🏥</span>
                     <div>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">
-                            <a href="/dogs/{{ v.dog_id }}" class="hover:text-paw-600">{{ v.dog_name }}</a>
-                        </p>
-                        <p class="text-xs text-gray-600 dark:text-gray-400">{{ v.reason }}</p>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ v.dog_name }} · {{ v.reason }}</p>
                         <p class="text-xs text-gray-500">{{ v.date.isoformat() }}{% if v.vet_name %} · {{ v.vet_name }}{% endif %}</p>
                     </div>
-                </div>
+                </a>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-sm text-gray-500 dark:text-gray-400">No vet visits recorded yet.</p>
+            <div class="text-center py-8">
+                <p class="text-4xl mb-2">🏥</p>
+                <p class="text-sm text-gray-500">No visits recorded yet.</p>
+            </div>
             {% endif %}
         </div>
     </div>
