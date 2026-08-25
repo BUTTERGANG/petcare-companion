@@ -314,7 +314,7 @@ async def add_dog(
     session.add(dog)
     await session.commit()
     await session.refresh(dog)
-    return RedirectResponse(url=f"/dogs/{dog.id}", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog.id}" + "?saved=1", status_code=303)
 
 
 @app.get("/dogs/{dog_id}", response_class=HTMLResponse)
@@ -432,7 +432,7 @@ async def edit_dog(
     dog.notes = notes or None
 
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}" + "?saved=1", status_code=303)
 
 
 @app.post("/dogs/{dog_id}/delete")
@@ -510,7 +510,7 @@ async def add_vet_visit(
     )
     session.add(visit)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/vet-visits", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/vet-visits" + "?saved=1", status_code=303)
 
 
 @app.post("/vet-visits/{visit_id}/delete")
@@ -522,7 +522,7 @@ async def delete_vet_visit(visit_id: int, session: AsyncSession = Depends(get_se
     dog_id = visit.dog_id
     await session.delete(visit)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/vet-visits", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/vet-visits" + "?deleted=1", status_code=303)
 
 
 # ===================== VACCINATION ROUTES =====================
@@ -585,7 +585,7 @@ async def add_vaccination(
     )
     session.add(vacc)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/vaccinations", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/vaccinations" + "?saved=1", status_code=303)
 
 
 @app.post("/vaccinations/{vacc_id}/delete")
@@ -597,7 +597,7 @@ async def delete_vaccination(vacc_id: int, session: AsyncSession = Depends(get_s
     dog_id = vacc.dog_id
     await session.delete(vacc)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/vaccinations", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/vaccinations" + "?deleted=1", status_code=303)
 
 
 # ===================== MEDICATION ROUTES =====================
@@ -661,7 +661,7 @@ async def add_medication(
     )
     session.add(med)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/medications", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/medications" + "?saved=1", status_code=303)
 
 
 @app.post("/medications/{med_id}/toggle")
@@ -672,7 +672,7 @@ async def toggle_medication(med_id: int, session: AsyncSession = Depends(get_ses
         raise HTTPException(status_code=404)
     med.is_active = not med.is_active
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{med.dog_id}/medications", status_code=303)
+    return RedirectResponse(url=f"/dogs/{med.dog_id}/medications" + "?saved=1", status_code=303)
 
 
 @app.post("/medications/{med_id}/delete")
@@ -684,7 +684,7 @@ async def delete_medication(med_id: int, session: AsyncSession = Depends(get_ses
     dog_id = med.dog_id
     await session.delete(med)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/medications", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/medications" + "?deleted=1", status_code=303)
 
 
 # ===================== NUTRITION ROUTES =====================
@@ -748,7 +748,7 @@ async def add_meal(
     )
     session.add(meal)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/nutrition", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/nutrition" + "?saved=1", status_code=303)
 
 
 @app.post("/meals/{meal_id}/delete")
@@ -760,7 +760,7 @@ async def delete_meal(meal_id: int, session: AsyncSession = Depends(get_session)
     dog_id = meal.dog_id
     await session.delete(meal)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/nutrition", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/nutrition" + "?deleted=1", status_code=303)
 
 
 @app.get("/dogs/{dog_id}/weight/add", response_class=HTMLResponse)
@@ -787,7 +787,7 @@ async def add_weight(
     wr = WeightRecord(dog_id=dog_id, date=w_date, weight_kg=weight_kg, notes=notes or None)
     session.add(wr)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/nutrition", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/nutrition" + "?saved=1", status_code=303)
 
 
 @app.post("/weight/{weight_id}/delete")
@@ -799,7 +799,7 @@ async def delete_weight(weight_id: int, session: AsyncSession = Depends(get_sess
     dog_id = wr.dog_id
     await session.delete(wr)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/nutrition", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/nutrition" + "?deleted=1", status_code=303)
 
 
 # ===================== SYMPTOM CHECKER =====================
@@ -955,7 +955,7 @@ async def log_grooming(
     log = GroomingLog(dog_id=dog_id, date=log_date, activity=activity, notes=notes or None)
     session.add(log)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/grooming", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/grooming" + "?saved=1", status_code=303)
 
 
 @app.post("/grooming/{log_id}/delete")
@@ -967,7 +967,7 @@ async def delete_grooming(log_id: int, session: AsyncSession = Depends(get_sessi
     dog_id = log.dog_id
     await session.delete(log)
     await session.commit()
-    return RedirectResponse(url=f"/dogs/{dog_id}/grooming", status_code=303)
+    return RedirectResponse(url=f"/dogs/{dog_id}/grooming" + "?deleted=1", status_code=303)
 
 
 # ===================== REMINDERS API =====================
