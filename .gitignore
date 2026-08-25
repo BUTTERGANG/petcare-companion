@@ -24,6 +24,10 @@ uploads/*
 .DS_Store
 Thumbs.db
 
+# Node / Tailwind build
+node_modules/
+package-lock.json
+
 # Hermes
 .hermes/
 
