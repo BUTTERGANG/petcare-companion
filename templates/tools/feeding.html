@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Feeding Calculator{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div>
+        <h1 class="font-display text-3xl font-bold text-gray-900 dark:text-white">🍽️ Feeding Calculator</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">Vet-standard energy math (RER/MER) to estimate daily calories. Always defer to your vet and your food's label.</p>
+    </div>
+
+    <!-- Quick pick from your dogs -->
+    {% if dogs %}
+    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
+        <p class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Use one of your dogs</p>
+        <div class="flex flex-wrap gap-2">
+            {% for d in dogs %}
+            {% if d.weight %}
+            <a href="/feeding-calculator?weight={{ d.weight }}&stage=adult_neutered" class="px-3 py-1.5 rounded-full bg-paw-50 dark:bg-paw-900/40 text-paw-700 dark:text-paw-300 text-sm font-medium hover:bg-paw-100 transition">
+                {{ d.name }} ({{ d.weight }} kg)
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Calculator form -->
+    <form method="get" action="/feeding-calculator" class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 grid sm:grid-cols-[1fr_1.4fr_auto] gap-4 items-end">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weight (kg)</label>
+            <input type="number" step="0.1" min="0.5" name="weight" required value="{{ weight or '' }}"
+                   class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-paw-500" placeholder="e.g. 25">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Life stage / lifestyle</label>
+            <select name="stage" class="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-gray-900 dark:text-white">
+                {% for f in factors %}
+                <option value="{{ f.id }}" {% if stage == f.id %}selected{% endif %}>{{ f.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="px-6 py-2.5 bg-paw-600 text-white font-semibold rounded-xl hover:bg-paw-700 transition shadow-soft">Calculate</button>
+    </form>
+
+    {% if result %}
+    <!-- Results -->
+    <div class="grid sm:grid-cols-3 gap-4">
+        <div class="bg-gradient-to-br from-paw-600 to-paw-800 text-white rounded-2xl p-6 shadow-lift">
+            <p class="text-paw-200 text-xs font-semibold uppercase tracking-wide">Daily calories</p>
+            <p class="text-4xl font-bold mt-1">{{ result.mer }}<span class="text-lg font-medium text-paw-200"> kcal</span></p>
+            <p class="text-xs text-paw-200 mt-2">{{ result.stage }}</p>
+        </div>
+        <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+            <p class="text-gray-400 text-xs font-semibold uppercase tracking-wide">RER (resting)</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ result.rer }} kcal</p>
+            <p class="text-xs text-gray-400 mt-2">Baseline before activity factor</p>
+        </div>
+        <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+            <p class="text-gray-400 text-xs font-semibold uppercase tracking-wide">Typical dry food</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ result.cups_low }}–{{ result.cups_high }} cups</p>
+            <p class="text-xs text-gray-400 mt-2">Assumes 300–400 kcal/cup — check your bag</p>
+        </div>
+    </div>
+
+    <div class="rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 p-4 text-sm text-blue-800 dark:text-blue-300">
+        💡 Split the total into 2 meals a day. Treats should stay under 10% of calories. Adjust ±10% based on body condition — you should feel ribs easily but not see them.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

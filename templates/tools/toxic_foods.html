@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Toxic Foods Reference{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8">
+    <div>
+        <h1 class="font-display text-3xl font-bold text-gray-900 dark:text-white">🚫 Toxic Foods for Dogs</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">Quick reference of dangerous and risky human foods. When in doubt, don't share it.</p>
+        <div class="mt-3 inline-flex flex-wrap gap-3 text-sm">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 font-medium">🔴 Danger — serious harm possible</span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 font-medium">🟡 Caution — usually mild, dose-dependent</span>
+        </div>
+    </div>
+
+    <div class="rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 p-5">
+        <p class="font-semibold text-red-800 dark:text-red-300">Pet Poison Helpline: <a href="tel:8557647661" class="underline">(855) 764-7661</a> · ASPCA Poison Control: <a href="tel:8884264435" class="underline">(888) 426-4435</a></p>
+        <p class="text-sm text-red-600 dark:text-red-400 mt-1">Save these numbers now — poison cases are time-critical.</p>
+    </div>
+
+    <!-- Danger section -->
+    <section>
+        <h2 class="font-display text-xl font-semibold text-red-700 dark:text-red-400 mb-4">🔴 Danger</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+            {% for f in danger %}
+            <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-red-200 dark:border-red-900/60 p-5">
+                <h3 class="font-semibold text-gray-900 dark:text-white">{{ f.food }}</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ f.why }}</p>
+                <p class="text-sm mt-2 font-medium text-red-700 dark:text-red-400">{{ f.action }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Caution section -->
+    <section>
+        <h2 class="font-display text-xl font-semibold text-amber-600 dark:text-amber-400 mb-4">🟡 Caution</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+            {% for f in caution %}
+            <div class="card bg-white dark:bg-gray-900 rounded-2xl border border-amber-200 dark:border-amber-900/60 p-5">
+                <h3 class="font-semibold text-gray-900 dark:text-white">{{ f.food }}</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ f.why }}</p>
+                <p class="text-sm mt-2 font-medium text-amber-700 dark:text-amber-400">{{ f.action }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

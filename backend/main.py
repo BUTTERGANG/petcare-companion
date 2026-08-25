@@ -1020,6 +1020,46 @@ async def reminders_api(days: int = Query(30), session: AsyncSession = Depends(g
     return JSONResponse({"generated": today.isoformat(), "reminders": reminders})
 
 
+# ===================== FEEDING CALCULATOR =====================
+
+from .care_data import FEEDING_FACTORS, TOXIC_FOODS, calc_rer, calc_mer
+
+
+@app.get("/feeding-calculator", response_class=HTMLResponse)
+async def feeding_calculator(
+    request: Request,
+    weight: Optional[float] = Query(None),
+    stage: Optional[str] = Query(None),
+    session: AsyncSession = Depends(get_session),
+):
+    result = None
+    if weight and weight > 0:
+        factor_info = next((f for f in FEEDING_FACTORS if f["id"] == stage), FEEDING_FACTORS[2])
+        rer = calc_rer(weight)
+        mer = calc_mer(weight, factor_info["factor"])
+        cups_range = (mer / 400, mer / 300)  # typical dry food: 300–400 kcal/cup
+        result = {
+            "weight": weight, "stage": factor_info["label"],
+            "rer": round(rer), "mer": round(mer),
+            "cups_low": round(cups_range[0], 1), "cups_high": round(cups_range[1], 1),
+        }
+    dogs_result = await session.execute(select(Dog).order_by(Dog.name))
+    dogs = dogs_result.scalars().all()
+    return templates.TemplateResponse(request, "tools/feeding.html", {
+        "request": request, "factors": FEEDING_FACTORS, "result": result,
+        "weight": weight, "stage": stage, "dogs": dogs,
+    })
+
+
+@app.get("/toxic-foods", response_class=HTMLResponse)
+async def toxic_foods(request: Request):
+    danger = [f for f in TOXIC_FOODS if f["severity"] == "danger"]
+    caution = [f for f in TOXIC_FOODS if f["severity"] == "caution"]
+    return templates.TemplateResponse(request, "tools/toxic_foods.html", {
+        "request": request, "danger": danger, "caution": caution,
+    })
+
+
 # ===================== BREED ROUTES =====================
 
 @app.get("/breeds", response_class=HTMLResponse)
