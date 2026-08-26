@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from .database import init_db, get_session, async_session
-from .models import Breed, Dog, VetVisit, Vaccination, Medication, Meal, WeightRecord, GroomingLog, Species
+from .models import Breed, Dog, VetVisit, Vaccination, Medication, Meal, WeightRecord, GroomingLog, Species, Condition
 from .schemas import (
     DogCreate, DogUpdate, DogOut, DogSummary, BreedOut,
     VetVisitCreate, VetVisitOut,
@@ -126,6 +126,26 @@ async def on_startup():
                 .values(species_id=dog_species.id)
             )
             await session.commit()
+
+        # Seed veterinary conditions KB
+        try:
+            from . import conditions_seed as cs
+        except ImportError:
+            cs = None
+        if cs:
+            existing_conds = await session.execute(select(sa_func.count(Condition.id)))
+            if existing_conds.scalar() == 0:
+                sp_map = {}
+                for s_ in (await session.execute(select(Species))).scalars().all():
+                    sp_map[s_.slug] = s_.id
+                for c in cs.CONDITIONS:
+                    sid = sp_map.get(c["species"])
+                    if not sid:
+                        continue
+                    d = {k: v for k, v in c.items() if k != "species"}
+                    d["species_id"] = sid
+                    session.add(Condition(**d))
+                await session.commit()
 
         # Seed breeds (dogs) if empty
         try:
@@ -1210,6 +1230,65 @@ async def feeding_calculator(
     return templates.TemplateResponse(request, "tools/feeding.html", {
         "request": request, "factors": FEEDING_FACTORS, "result": result,
         "weight": weight, "stage": stage, "dogs": dogs,
+    })
+
+
+# ===================== KNOWLEDGE BASE =====================
+
+@app.get("/kb/{species_slug}", response_class=HTMLResponse)
+async def kb_browse(
+    request: Request,
+    species_slug: str,
+    category: Optional[str] = Query(None),
+    urgency: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    session: AsyncSession = Depends(get_session),
+):
+    sp_result = await session.execute(select(Species).where(Species.slug == species_slug))
+    species_obj = sp_result.scalars().first()
+    if not species_obj:
+        raise HTTPException(status_code=404)
+
+    query = select(Condition).where(Condition.species_id == species_obj.id)
+    if category:
+        query = query.where(Condition.category == category)
+    if urgency:
+        query = query.where(Condition.urgency == urgency)
+    if search:
+        query = query.where(Condition.name.ilike(f"%{search}%"))
+    # Emergency first, then urgent, then others alphabetically
+    result = await session.execute(query)
+    conds = result.scalars().all()
+    order = {"emergency": 0, "urgent": 1, "chronic": 2, "monitor": 3}
+    conds.sort(key=lambda c: (order.get(c.urgency, 4), c.name))
+
+    categories_result = await session.execute(
+        select(Condition.category).where(Condition.species_id == species_obj.id).distinct()
+    )
+    categories = sorted([c for c in categories_result.scalars().all() if c])
+
+    return templates.TemplateResponse(request, "kb/browse.html", {
+        "request": request, "species": species_obj, "conditions": conds,
+        "categories": categories, "current_category": category,
+        "current_urgency": urgency, "search": search,
+    })
+
+
+@app.get("/kb/{species_slug}/{slug}", response_class=HTMLResponse)
+async def kb_detail(request: Request, species_slug: str, slug: str,
+                    session: AsyncSession = Depends(get_session)):
+    sp_result = await session.execute(select(Species).where(Species.slug == species_slug))
+    species_obj = sp_result.scalars().first()
+    if not species_obj:
+        raise HTTPException(status_code=404)
+    result = await session.execute(
+        select(Condition).where(Condition.slug == slug, Condition.species_id == species_obj.id)
+    )
+    condition = result.scalars().first()
+    if not condition:
+        raise HTTPException(status_code=404)
+    return templates.TemplateResponse(request, "kb/detail.html", {
+        "request": request, "species": species_obj, "condition": condition,
     })
 
 

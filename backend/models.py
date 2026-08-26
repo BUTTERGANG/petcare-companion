@@ -174,6 +174,31 @@ class WeightRecord(Base):
     dog = relationship("Dog", back_populates="weight_records")
 
 
+class Condition(Base):
+    """Veterinary knowledge base entry — structured condition reference."""
+    __tablename__ = "conditions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+    name = Column(String(150), nullable=False, index=True)
+    slug = Column(String(150), unique=True, nullable=False, index=True)
+    category = Column(String(80), nullable=True)  # gastrointestinal, orthopedic, toxic, metabolic...
+    urgency = Column(String(20), nullable=False)  # emergency / urgent / monitor / chronic
+    summary = Column(Text, nullable=False)
+    symptoms = Column(JSON, nullable=True)  # ["vomiting", "lethargy", ...]
+    causes = Column(JSON, nullable=True)
+    diagnosis = Column(Text, nullable=True)  # how vet confirms it
+    treatment = Column(Text, nullable=True)
+    prevention = Column(Text, nullable=True)
+    breed_predispositions = Column(JSON, nullable=True)  # ["German Shepherd", ...]
+    owner_actions = Column(Text, nullable=True)  # what the owner should do right now
+    when_emergency = Column(Text, nullable=True)  # red flags that escalate
+    sources = Column(JSON, nullable=True)  # citation strings
+    created_at = Column(DateTime, server_default=func.now())
+
+    species = relationship("Species")
+
+
 class GroomingLog(Base):
     __tablename__ = "grooming_logs"
 

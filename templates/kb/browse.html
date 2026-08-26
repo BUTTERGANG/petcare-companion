@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ species.name }} Health Library{% endblock %}
+{% block navkey %}kb{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="font-display text-3xl font-bold text-gray-900 dark:text-white">{{ species.icon }} {{ species.name }} Health Library</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">Structured condition reference — symptoms, causes, treatment, and emergency flags.</p>
+    </div>
+
+    <!-- Species tabs -->
+    <div class="flex flex-wrap gap-2">
+        {% for slug, label in [('dog','🐕 Dog'), ('cat','🐱 Cat'), ('horse','🐎 Horse'), ('cattle','🐄 Cattle'), ('goat','🐐 Goat')] %}
+        <a href="/kb/{{ slug }}"
+           {% if species.slug == slug %}class="px-4 py-2 rounded-xl text-sm font-semibold bg-paw-600 text-white"{% else %}class="px-4 py-2 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 transition"{% endif %}>{{ label }}</a>
+        {% endfor %}
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+        <form method="get" action="/kb/{{ species.slug }}" class="flex gap-2">
+            <input type="text" name="search" value="{{ search or '' }}" placeholder="Search conditions..."
+                   class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950 text-sm">
+            {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
+            {% if current_urgency %}<input type="hidden" name="urgency" value="{{ current_urgency }}">{% endif %}
+            <button class="px-4 py-2 bg-paw-600 text-white text-sm font-semibold rounded-xl hover:bg-paw-700">Search</button>
+        </form>
+        <div class="flex flex-wrap gap-1.5">
+            <a href="/kb/{{ species.slug }}" {% if not current_category %}class="px-3 py-1 rounded-full text-xs font-semibold bg-paw-600 text-white"{% else %}class="px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200"{% endif %}>All categories</a>
+            {% for cat in categories %}
+            <a href="/kb/{{ species.slug }}?category={{ cat }}" {% if current_category == cat %}class="px-3 py-1 rounded-full text-xs font-semibold bg-paw-600 text-white"{% else %}class="px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800 hover:bg-gray-200"{% endif %}>{{ cat|capitalize }}</a>
+            {% endfor %}
+        </div>
+        <div class="flex flex-wrap gap-1.5">
+            {% set urg = [('emergency','🚨 Emergency'), ('urgent','⚡ Urgent'), ('chronic','📋 Chronic'), ('monitor','👀 Monitor')] %}
+            <a href="/kb/{{ species.slug }}" {% if not current_urgency %}class="px-3 py-1 rounded-full text-xs font-semibold bg-paw-600 text-white"{% else %}class="px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800"{% endif %}>Any urgency</a>
+            {% for u, label in urg %}
+            <a href="/kb/{{ species.slug }}?urgency={{ u }}" {% if current_urgency == u %}class="px-3 py-1 rounded-full text-xs font-semibold bg-paw-600 text-white"{% else %}class="px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800"{% endif %}>{{ label }}</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Condition cards -->
+    {% if conditions %}
+    <div class="grid md:grid-cols-2 gap-4">
+        {% for c in conditions %}
+        <a href="/kb/{{ species.slug }}/{{ c.slug }}" class="card block bg-white dark:bg-gray-900 rounded-2xl border p-5
+            {% if c.urgency == 'emergency' %}border-red-200 dark:border-red-900/60{% elif c.urgency == 'urgent' %}border-amber-200 dark:border-amber-900/60{% else %}border-gray-200 dark:border-gray-800{% endif %}">
+            <div class="flex items-start justify-between mb-2 gap-2">
+                <h3 class="font-semibold text-gray-900 dark:text-white leading-snug">{{ c.name }}</h3>
+                {% if c.urgency == 'emergency' %}<span class="shrink-0 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 text-[10px] font-bold">🚨 EMERGENCY</span>
+                {% elif c.urgency == 'urgent' %}<span class="shrink-0 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-[10px] font-bold">⚡ URGENT</span>
+                {% elif c.urgency == 'chronic' %}<span class="shrink-0 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 text-[10px] font-bold">📋 CHRONIC</span>
+                {% else %}<span class="shrink-0 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 text-[10px] font-bold">👀 MONITOR</span>{% endif %}
+            </div>
+            {% if c.category %}<p class="text-[10px] uppercase tracking-wide text-paw-600 font-semibold mb-1">{{ c.category|replace('-',' ') }}</p>{% endif %}
+            <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{{ c.summary[:140] }}{% if c.summary|length > 140 %}…{% endif %}</p>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-16 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
+        <p class="text-4xl mb-2">🔍</p>
+        <p class="text-gray-500">No conditions match those filters.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

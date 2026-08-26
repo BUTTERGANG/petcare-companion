@@ -14,7 +14,8 @@
                {% if current_species == slug %}class="px-5 py-2 rounded-xl text-sm font-semibold bg-paw-600 text-white"{% else %}class="px-5 py-2 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 transition"{% endif %}>{{ label }}</a>
             {% endfor %}
         </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">⚠️ This is not a substitute for professional veterinary advice. When in doubt, always consult your vet.</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">⚠️ This is not a substitute for professional veterinary advice. When in doubt, always consult your vet.</p>
+        <a href="/kb/{{ current_species }}" class="inline-block mt-2 text-sm text-paw-600 dark:text-paw-400 font-medium hover:underline">📖 Browse the full {{ current_species|capitalize }} Health Library →</a>
     </div>
 
     <!-- Filter buttons -->

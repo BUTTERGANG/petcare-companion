@@ -42,6 +42,7 @@
                         ('/symptom-checker', 'Symptom Checker', 'symptoms'),
                         ('/feeding-calculator', 'Feeding', 'feeding'),
                         ('/toxic-foods', 'Toxic Foods', 'toxic'),
+                        ('/kb/dog', 'Health Library', 'kb'),
                     ] %}
                     {% set p = request.url.path if request else '' %}
                     {% set current = 'breeds' if p.startswith('/breeds') else ('symptoms' if p.startswith('/symptom') else ('feeding' if p.startswith('/feeding') else ('toxic' if p.startswith('/toxic') else ('index' if p == '/' else '')))) %}
