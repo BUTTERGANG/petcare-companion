@@ -1165,11 +1165,11 @@ async def delete_grooming(log_id: int, session: AsyncSession = Depends(get_sessi
 
 @app.get("/api/reminders")
 async def reminders_api(days: int = Query(30), session: AsyncSession = Depends(get_session)):
-    """JSON endpoint for reminder checks (used by cron / external monitors)."""
+    """JSON endpoint for reminder checks across ALL species (used by cron / external monitors)."""
     today = date.today()
     reminders = []
-    dogs_result = await session.execute(select(Dog))
-    dogs = {d.id: d.name for d in dogs_result.scalars().all()}
+    animals_result = await session.execute(select(Dog).options(joinedload(Dog.species)))
+    animals = {a.id: (a.name, a.species.slug if a.species else "dog") for a in animals_result.scalars().unique().all()}
 
     vax_result = await session.execute(
         select(Vaccination).where(
@@ -1178,42 +1178,43 @@ async def reminders_api(days: int = Query(30), session: AsyncSession = Depends(g
         )
     )
     for v in vax_result.scalars().all():
+        name, sp = animals.get(v.dog_id, ("?", "dog"))
         days_until = (v.date_due - today).days
+        base = {"item": v.vaccine_type, "due_date": v.date_due.isoformat(),
+                "days_until": days_until, "animal_id": v.dog_id, "animal_name": name, "species": sp}
+        # backward-compatible keys
+        base["dog_id"] = v.dog_id
+        base["dog_name"] = name
         if 0 <= days_until <= days:
-            reminders.append({
-                "type": "vaccination", "dog_id": v.dog_id, "dog_name": dogs.get(v.dog_id),
-                "item": v.vaccine_type, "due_date": v.date_due.isoformat(), "days_until": days_until,
-            })
+            reminders.append({"type": "vaccination", **base})
         elif days_until < 0:
-            reminders.append({
-                "type": "vaccination_overdue", "dog_id": v.dog_id, "dog_name": dogs.get(v.dog_id),
-                "item": v.vaccine_type, "due_date": v.date_due.isoformat(), "days_until": days_until,
-            })
+            reminders.append({"type": "vaccination_overdue", **base})
 
-    # Grooming overdue
-    for dog_id_str, dog_name in dogs.items():
-        dog_id_int = int(dog_id_str)
+    # Grooming overdue — species-aware intervals
+    for animal_id_str, (animal_name, sp) in animals.items():
+        animal_id_int = int(animal_id_str)
+        acts, intervals_map = grooming_config(sp)
         logs_result = await session.execute(
-            select(GroomingLog).where(GroomingLog.dog_id == dog_id_int).order_by(desc(GroomingLog.date))
+            select(GroomingLog).where(GroomingLog.dog_id == animal_id_int)
         )
-        logs = logs_result.scalars().all()
-        for act in GROOMING_ACTIVITIES:
-            last = next((l for l in logs if l.activity == act), None)
-            if last:
-                due = date.fromordinal(last.date.toordinal() + GROOMING_INTERVALS[act])
-                days_until = (due - today).days
-                if days_until < 0:
-                    reminders.append({
-                        "type": "grooming_overdue", "dog_id": dog_id_int, "dog_name": dog_name,
-                        "item": act, "due_date": due.isoformat(), "days_until": days_until,
-                    })
+        last_by_act = {}
+        for log in logs_result.scalars().all():
+            if log.activity not in last_by_act or log.date > last_by_act[log.activity]:
+                last_by_act[log.activity] = log.date
+        for act in acts:
+            interval = intervals_map[act]
+            last = last_by_act.get(act)
+            due = (last + timedelta(days=interval)) if last else None
+            days_overdue = (today - due).days if due else 9999
+            if days_overdue >= 0 and days_overdue <= days:
+                reminders.append({
+                    "type": "grooming_overdue", "dog_id": animal_id_int, "dog_name": animal_name,
+                    "animal_id": animal_id_int, "animal_name": animal_name, "species": sp,
+                    "item": act, "due_date": due.isoformat(), "days_until": -days_overdue,
+                })
+
     reminders.sort(key=lambda r: r["days_until"])
-    return JSONResponse({"generated": today.isoformat(), "reminders": reminders})
-
-
-# ===================== FEEDING CALCULATOR =====================
-
-from .care_data import FEEDING_FACTORS, TOXIC_FOODS, calc_rer, calc_mer
+    return {"generated": today.isoformat(), "count": len(reminders), "reminders": reminders}
 
 
 @app.get("/feeding-calculator", response_class=HTMLResponse)
