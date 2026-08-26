@@ -53,6 +53,19 @@ class Breed(Base):
     dogs = relationship("Dog", back_populates="breed")
 
 
+class Herd(Base):
+    __tablename__ = "herds"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False)
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    species = relationship("Species")
+    animals = relationship("Dog", back_populates="herd")
+
+
 class Dog(Base):
     __tablename__ = "dogs"
 
@@ -72,6 +85,8 @@ class Dog(Base):
 
     breed = relationship("Breed", back_populates="dogs")
     species = relationship("Species")
+    herd_id = Column(Integer, ForeignKey("herds.id"), nullable=True)
+    herd = relationship("Herd", back_populates="animals")
     vet_visits = relationship("VetVisit", back_populates="dog", cascade="all, delete-orphan")
     vaccinations = relationship("Vaccination", back_populates="dog", cascade="all, delete-orphan")
     medications = relationship("Medication", back_populates="dog", cascade="all, delete-orphan")

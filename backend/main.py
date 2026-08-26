@@ -107,24 +107,25 @@ async def optional_auth(request: Request):
 async def on_startup():
     await init_db()
     async with async_session() as session:
-        # Seed species
-        result = await session.execute(select(sa_func.count(Species.id)))
-        if result.scalar() == 0:
-            session.add_all([
-                Species(name="Dog", slug="dog", icon="🐕"),
-                Species(name="Cat", slug="cat", icon="🐱"),
-            ])
+        # Seed species (idempotent — one by one)
+        for name_, slug_, icon_ in [
+            ("Dog", "dog", "🐕"), ("Cat", "cat", "🐱"), ("Horse", "horse", "🐎"),
+            ("Cattle", "cattle", "🐄"), ("Goat", "goat", "🐐"),
+        ]:
+            exists = await session.execute(select(Species).where(Species.slug == slug_))
+            if not exists.scalars().first():
+                session.add(Species(name=name_, slug=slug_, icon=icon_))
+        await session.commit()
+        # Tag legacy dog breeds with dog species_id
+        from sqlalchemy import update as sa_update
+        dog_sp = await session.execute(select(Species).where(Species.slug == "dog"))
+        dog_species = dog_sp.scalars().first()
+        if dog_species:
+            await session.execute(
+                sa_update(Breed).where(Breed.species_id.is_(None))
+                .values(species_id=dog_species.id)
+            )
             await session.commit()
-            # Tag legacy dog breeds with dog species_id
-            from sqlalchemy import update as sa_update
-            dog_sp = await session.execute(select(Species).where(Species.slug == "dog"))
-            dog_species = dog_sp.scalars().first()
-            if dog_species:
-                await session.execute(
-                    sa_update(Breed).where(Breed.species_id.is_(None))
-                    .values(species_id=dog_species.id)
-                )
-                await session.commit()
 
         # Seed breeds (dogs) if empty
         try:
@@ -139,7 +140,31 @@ async def on_startup():
                     session.add(Breed(**bdata))
                 await session.commit()
 
-        # Seed cat breeds if no cat breeds exist yet
+                # Seed large-animal (horse/cattle/goat) breeds
+        try:
+            from . import large_animal_seed as las
+        except ImportError:
+            las = None
+        if las and not hasattr(las, 'HORSE_BREEDS'):
+            las = None
+        if las:
+            slug_to_breeds = {"horse": las.HORSE_BREEDS, "cattle": las.CATTLE_BREEDS, "goat": las.GOAT_BREEDS}
+            for slug, breed_list in slug_to_breeds.items():
+                sp_result2 = await session.execute(select(Species).where(Species.slug == slug))
+                sp2 = sp_result2.scalars().first()
+                if not sp2:
+                    continue
+                existing = await session.execute(
+                    select(sa_func.count(Breed.id)).where(Breed.species_id == sp2.id)
+                )
+                if existing.scalar() == 0:
+                    for bdata in breed_list:
+                        bdata = dict(bdata)
+                        bdata["species_id"] = sp2.id
+                        session.add(Breed(**bdata))
+                    await session.commit()
+
+# Seed cat breeds if no cat breeds exist yet
         try:
             from . import cat_breed_seed
         except ImportError:
@@ -905,10 +930,50 @@ CAT_SYMPTOMS = [
 ]
 
 
+HORSE_SYMPTOMS = [
+    {"id": "horse_colic", "name": "Colic signs (pawing, rolling, flank-watching)", "urgency": "emergency", "advice": "Colic is the #1 horse killer. Remove food, prevent rolling, walk slowly if safe. Call vet IMMEDIATELY — colic can require surgery within hours."},
+    {"id": "horse_laminitis", "name": "Laminitis signs (heat in hooves, leaning back stance)", "urgency": "emergency", "advice": "Laminitis destroys hoof tissue. Remove from grass immediately, provide soft footing, call vet. Every hour matters for permanent damage."},
+    {"id": "horse_not_eating", "name": "Off feed / not interested in food", "urgency": "urgent", "advice": "Horses should eat almost constantly. Off feed often means early colic or dental pain. Check gum color and gut sounds; call vet same day."},
+    {"id": "horse_no_gut_sounds", "name": "No gut sounds on left flank", "urgency": "emergency", "advice": "Silent gut precedes torsion/impaction. Emergency — this is a surgical case developing."},
+    {"id": "horse_nasal_discharge", "name": "Thick nasal discharge (one or both nostrils)", "urgency": "urgent", "advice": "Could be strangles (contagious!), abscessed tooth, or pneumonia. ISOLATE the horse immediately and call vet."},
+    {"id": "horse_sudden_lameness", "name": "Sudden severe lameness", "urgency": "emergency", "advice": "Could be fracture, abscess, or laminitis. Do not force movement. Call vet; hoist-poultice only if advised."},
+    {"id": "horse_tying_up", "name": "Muscle cramping / dark urine after work", "urgency": "emergency", "advice": "Tying-up (azoturia) — do NOT move the horse. It damages kidneys. Call vet, keep warm, wait for guidance."},
+    {"id": "horse_eye_tearful", "name": "Tearing, squinting or cloudy eye", "urgency": "emergency", "advice": "Equine eye ulcers progress to rupture in 24-48 hours. Equine eyes are true emergencies — call vet today."},
+    {"id": "horse_weight_loss", "name": "Losing weight / ribby despite feeding", "urgency": "urgent", "advice": "Parasites, teeth, or metabolic disease (PPID in seniors). Vet exam + fecal count this week."},
+    {"id": "horse_wounds", "name": "Deep wound / puncture", "urgency": "emergency", "advice": "Joint/tendon sheath involvement is life-threatening. If near a joint and leaking joint fluid — emergency surgery territory. Call now."},
+]
+
+CATTLE_SYMPTOMS = [
+    {"id": "cattle_bloat", "name": "Bloat (swollen left flank, distended)", "urgency": "emergency", "advice": "Frothy bloat kills in hours. Stop grain/pasture access, call vet — may need stomach tube or trocar."},
+    {"id": "cattle_mastitis", "name": "Hot/swollen udder or abnormal milk", "urgency": "urgent", "advice": "Mastitis spreads fast through a herd. Isolate, milk out frequently, vet for antibiotic choice."},
+    {"id": "cattle_lame", "name": "Lame / reluctant to walk", "urgency": "urgent", "advice": "Foot rot or abscess common. Restrain safely and inspect hoof; vet if heat/swelling or no obvious cause."},
+    {"id": "cattle_scours", "name": "Scours (diarrhea) especially in calves", "urgency": "emergency", "advice": "Calves dehydrate fatally fast. Electrolytes NOW, vet if not nursing or lethargic. Consider crypto/E.coli testing."},
+    {"id": "cattle_off_feed_herd", "name": "Multiple animals off feed", "urgency": "emergency", "advice": "Group problem: toxic feed, mold, contaminated water, or infectious disease. Check feed source immediately, call vet."},
+    {"id": "cattle_down", "name": "Down and cannot rise", "urgency": "emergency", "advice": "Milk fever (calcium), injury, or toxicity. Never drag. Roll to sternal, vet immediately — down cows deteriorate fast."},
+    {"id": "cattle_nasal", "name": "Nasal discharge + fever in group", "urgency": "urgent", "advice": "BRD (shipping fever) complex. Treat early — delay costs lungs permanently. Vet for protocol."},
+    {"id": "cattle_abortion", "name": "Abortion / stillbirth", "urgency": "urgent", "advice": "Could be brucellosis, leptospirosis, neospora — zoonotic risks. Isolate, retain fetus/placenta for necropsy, call vet."},
+]
+
+GOAT_SYMPTOMS = [
+    {"id": "goat_bloat", "name": "Bloat / distended left side", "urgency": "emergency", "advice": "Same frothy bloat as cattle. No food, walking may help gas escape, emergency vet or tube."},
+    {"id": "goat_scours", "name": "Scours (diarrhea)", "urgency": "urgent", "advice": "Coccidiosis in kids, parasites in adults. Fecal test needed — deworming without diagnosis breeds resistance."},
+    {"id": "goat_lameness_hoof", "name": "Lame / kneeling on front knees", "urgency": "urgent", "advice": "Hoof overgrowth or foot rot. Trim hooves every 6-8 weeks; vet if infection smells foul."},
+    {"id": "goat_off_feed", "name": "Off feed / separating from herd", "urgency": "urgent", "advice": "Goats hide illness but separate when sick. Check gums (anemia = barber pole worm), temp, rumen sounds."},
+    {"id": "goat_pregnancy_ketosis", "name": "Pregnant doe lethargic/off feed late-term", "urgency": "emergency", "advice": "Pregnancy toxemia (ketosis) is fatal for mom AND kids. Propylene glycol orally NOW, emergency vet."},
+    {"id": "goat_mastitis", "name": "Hot/hard udder in milking doe", "urgency": "urgent", "advice": "Milk out frequently, vet for antibiotics. Can become chronic/gangrenous."},
+    {"id": "goat_polio", "name": "Stargazing / blind / circling", "urgency": "emergency", "advice": "Polioencephalomalacia — thiamine deficiency. Emergency thiamine injections save lives; minutes matter."},
+    {"id": "goat_anemia", "name": "Pale gums / bottle jaw (swelling under jaw)", "urgency": "emergency", "advice": "Severe barber pole worm load — often fatal anemia. FAMACHA score, immediate dewormer + iron, vet."},
+]
+
+
 @app.get("/symptom-checker", response_class=HTMLResponse)
 async def symptom_checker(request: Request, species: Optional[str] = Query(None)):
     sp = species or "dog"
-    items = CAT_SYMPTOMS if sp == "cat" else SYMPTOMS
+    symptom_sets = {
+        "dog": SYMPTOMS, "cat": CAT_SYMPTOMS,
+        "horse": HORSE_SYMPTOMS, "cattle": CATTLE_SYMPTOMS, "goat": GOAT_SYMPTOMS,
+    }
+    items = symptom_sets.get(sp, SYMPTOMS)
     return templates.TemplateResponse(request, "symptom/checker.html", {
         "request": request, "symptoms": items, "current_species": sp,
     })
@@ -917,7 +982,7 @@ async def symptom_checker(request: Request, species: Optional[str] = Query(None)
 @app.get("/symptom-checker/{symptom_id}", response_class=HTMLResponse)
 async def symptom_detail(request: Request, symptom_id: str):
     symptom = None
-    for s in SYMPTOMS + CAT_SYMPTOMS:
+    for s in SYMPTOMS + CAT_SYMPTOMS + HORSE_SYMPTOMS + CATTLE_SYMPTOMS + GOAT_SYMPTOMS:
         if s["id"] == symptom_id:
             symptom = s
             break
@@ -966,17 +1031,44 @@ async def vet_report(request: Request, dog_id: int, session: AsyncSession = Depe
 # ===================== GROOMING ROUTES =====================
 
 GROOMING_ACTIVITIES = ["bath", "nails", "ears", "teeth", "brush", "haircut"]
-
-# Suggested interval (days) per activity; breed grooming_freq can refine this later
 GROOMING_INTERVALS = {"bath": 30, "nails": 21, "ears": 14, "teeth": 7, "brush": 3, "haircut": 60}
+
+SPECIES_GROOMING = {
+    "cat": {
+        "activities": ["brush", "nails", "ears", "teeth"],
+        "intervals": {"brush": 3, "nails": 14, "ears": 21, "teeth": 7},
+    },
+    "horse": {
+        "activities": ["hoof_care", "deworming", "vaccine_check", "dentist", "groom"],
+        "intervals": {"hoof_care": 42, "deworming": 90, "vaccine_check": 180, "dentist": 365, "groom": 1},
+    },
+    "cattle": {
+        "activities": ["hoof_check", "deworming", "vaccine_check"],
+        "intervals": {"hoof_check": 90, "deworming": 120, "vaccine_check": 180},
+    },
+    "goat": {
+        "activities": ["hoof_trim", "deworming", "vaccine_check", "brush"],
+        "intervals": {"hoof_trim": 56, "deworming": 90, "vaccine_check": 180, "brush": 30},
+    },
+}
+
+
+def grooming_config(species_slug):
+    """Return (activities, intervals) for a species slug; dogs get the default."""
+    cfg = SPECIES_GROOMING.get(species_slug or "dog")
+    if cfg:
+        return cfg["activities"], cfg["intervals"]
+    return GROOMING_ACTIVITIES, GROOMING_INTERVALS
 
 
 @app.get("/dogs/{dog_id}/grooming", response_class=HTMLResponse)
 async def grooming_dashboard(request: Request, dog_id: int, session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Dog).options(joinedload(Dog.breed)).where(Dog.id == dog_id))
+    result = await session.execute(select(Dog).options(joinedload(Dog.breed), joinedload(Dog.species)).where(Dog.id == dog_id))
     dog = result.scalars().first()
     if not dog:
         raise HTTPException(status_code=404)
+    species_slug = dog.species.slug if dog.species else "dog"
+    acts, intervals_map = grooming_config(species_slug)
     logs_result = await session.execute(
         select(GroomingLog).where(GroomingLog.dog_id == dog_id).order_by(desc(GroomingLog.date)).limit(50)
     )
@@ -985,10 +1077,10 @@ async def grooming_dashboard(request: Request, dog_id: int, session: AsyncSessio
     # Compute due status per activity
     today = date.today()
     activities = []
-    for act in GROOMING_ACTIVITIES:
+    for act in acts:
         last = next((l for l in logs if l.activity == act), None)  # logs sorted desc, so first match is latest
         last_date = last.date if last else None
-        interval = GROOMING_INTERVALS[act]
+        interval = intervals_map[act]
         if last_date:
             due_date = date.fromordinal(last_date.toordinal() + interval)
             days_until = (due_date - today).days
