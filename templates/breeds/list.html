@@ -4,8 +4,14 @@
 {% block content %}
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">📚 Dog Breed Reference</h1>
-        <div class="flex space-x-2">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">📚 Breed Guide</h1>
+        <!-- Species filter -->
+        <div class="flex gap-2">
+            <a href="/breeds" {% if not species %}class="px-4 py-1.5 rounded-full text-sm font-semibold bg-paw-600 text-white"{% else %}class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 transition"{% endif %}>All</a>
+            <a href="/breeds?species=dog" {% if species == 'dog' %}class="px-4 py-1.5 rounded-full text-sm font-semibold bg-paw-600 text-white"{% else %}class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 transition"{% endif %}>🐕 Dog</a>
+            <a href="/breeds?species=cat" {% if species == 'cat' %}class="px-4 py-1.5 rounded-full text-sm font-semibold bg-paw-600 text-white"{% else %}class="px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 transition"{% endif %}>🐱 Cat</a>
+        </div>
+    </div>
             <div class="relative">
                 <form method="get" action="/breeds" class="flex space-x-2">
                     <input type="text" name="search" value="{{ search or '' }}" placeholder="Search breeds..."

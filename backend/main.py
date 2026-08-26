@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from .database import init_db, get_session, async_session
-from .models import Breed, Dog, VetVisit, Vaccination, Medication, Meal, WeightRecord, GroomingLog
+from .models import Breed, Dog, VetVisit, Vaccination, Medication, Meal, WeightRecord, GroomingLog, Species
 from .schemas import (
     DogCreate, DogUpdate, DogOut, DogSummary, BreedOut,
     VetVisitCreate, VetVisitOut,
@@ -106,17 +106,58 @@ async def optional_auth(request: Request):
 @app.on_event("startup")
 async def on_startup():
     await init_db()
-    # Seed breeds if empty
-    try:
-        from . import breed_seed
-    except ImportError:
-        breed_seed = None
-    if breed_seed and hasattr(breed_seed, 'BREEDS'):
-        async with async_session() as session:
+    async with async_session() as session:
+        # Seed species
+        result = await session.execute(select(sa_func.count(Species.id)))
+        if result.scalar() == 0:
+            session.add_all([
+                Species(name="Dog", slug="dog", icon="🐕"),
+                Species(name="Cat", slug="cat", icon="🐱"),
+            ])
+            await session.commit()
+            # Tag legacy dog breeds with dog species_id
+            from sqlalchemy import update as sa_update
+            dog_sp = await session.execute(select(Species).where(Species.slug == "dog"))
+            dog_species = dog_sp.scalars().first()
+            if dog_species:
+                await session.execute(
+                    sa_update(Breed).where(Breed.species_id.is_(None))
+                    .values(species_id=dog_species.id)
+                )
+                await session.commit()
+
+        # Seed breeds (dogs) if empty
+        try:
+            from . import breed_seed
+        except ImportError:
+            breed_seed = None
+        if breed_seed and hasattr(breed_seed, 'BREEDS'):
             result = await session.execute(select(sa_func.count(Breed.id)))
             count = result.scalar()
             if count == 0:
                 for bdata in breed_seed.BREEDS:
+                    session.add(Breed(**bdata))
+                await session.commit()
+
+        # Seed cat breeds if no cat breeds exist yet
+        try:
+            from . import cat_breed_seed
+        except ImportError:
+            cat_breed_seed = None
+        if cat_breed_seed and hasattr(cat_breed_seed, 'BREEDS'):
+            cat_sp_result = await session.execute(select(Species).where(Species.slug == "cat"))
+            cat_species = cat_sp_result.scalars().first()
+            existing_cats = await session.execute(
+                select(sa_func.count(Breed.id)).where(Breed.species_id == (cat_species.id if cat_species else -1))
+            )
+            if existing_cats.scalar() == 0 and cat_species:
+                # Cat breeds may collide with dog breed names (unique constraint) — skip on conflict
+                for bdata in cat_breed_seed.BREEDS:
+                    exists = await session.execute(select(Breed.id).where(Breed.name == bdata["name"]))
+                    if exists.scalars().first():
+                        continue
+                    bdata = dict(bdata)
+                    bdata["species_id"] = cat_species.id
                     session.add(Breed(**bdata))
                 await session.commit()
 
@@ -263,16 +304,24 @@ async def dashboard(request: Request, session: AsyncSession = Depends(get_sessio
 # ===================== DOG ROUTES =====================
 
 @app.get("/dogs/add", response_class=HTMLResponse)
-async def add_dog_form(request: Request, session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Breed).order_by(Breed.name))
+async def add_dog_form(request: Request, species: Optional[str] = Query(None), session: AsyncSession = Depends(get_session)):
+    sp_result = await session.execute(select(Species).order_by(Species.id))
+    all_species = sp_result.scalars().all()
+    chosen = next((s for s in all_species if s.slug == (species or "dog")), all_species[0] if all_species else None)
+    result = await session.execute(
+        select(Breed).where(Breed.species_id == chosen.id).order_by(Breed.name) if chosen else select(Breed).order_by(Breed.name)
+    )
     breeds = result.scalars().all()
-    return templates.TemplateResponse(request, "dogs/add.html", {"request": request, "breeds": breeds})
+    return templates.TemplateResponse(request, "dogs/add.html", {
+        "request": request, "breeds": breeds, "species_list": all_species, "current_species": chosen,
+    })
 
 
 @app.post("/dogs/add")
 async def add_dog(
     request: Request,
     name: str = Form(...),
+    species_id: Optional[int] = Form(None),
     breed_id: Optional[int] = Form(None),
     dob: Optional[str] = Form(None),
     weight: Optional[float] = Form(None),
@@ -302,6 +351,7 @@ async def add_dog(
 
     dog = Dog(
         name=name,
+        species_id=species_id if species_id and species_id > 0 else None,
         breed_id=breed_id if breed_id and breed_id > 0 else None,
         dob=dog_dob,
         weight=weight,
@@ -837,17 +887,37 @@ SYMPTOMS = [
 ]
 
 
+CAT_SYMPTOMS = [
+    {"id": "cat_not_eating", "name": "Not eating (24+ hours)", "urgency": "urgent", "advice": "Cats develop hepatic lipidosis (fatty liver) after just 2-3 days without food — this is more dangerous for cats than dogs. See a vet within 24 hours."},
+    {"id": "cat_vomiting", "name": "Vomiting (frequent)", "urgency": "monitor", "advice": "Occasional hairballs are normal. Frequent vomiting (>2x/day), or vomiting with lethargy, needs a vet within 24h."},
+    {"id": "cat_straining_litter", "name": "Straining in litter box / not urinating", "urgency": "emergency", "advice": "MALE CATS: a blocked urethra is fatal within 24-48 hours. Even females straining need same-day vet care. This is the #1 feline emergency."},
+    {"id": "cat_lethargy_hiding", "name": "Hiding + lethargy", "urgency": "urgent", "advice": "Cats hide illness instinctively. A social cat suddenly hiding is a significant sign. Vet within 24 hours."},
+    {"id": "cat_breathing_open", "name": "Open-mouth breathing / panting", "urgency": "emergency", "advice": "Cats should NEVER pant like dogs except brief stress. Open-mouth breathing = respiratory or cardiac emergency. Go now."},
+    {"id": "cat_drinking_lot", "name": "Drinking much more than usual", "urgency": "urgent", "advice": "Classic sign of kidney disease, diabetes, or hyperthyroidism — all common in older cats. Vet visit this week with a urine sample."},
+    {"id": "cat_weight_loss", "name": "Losing weight despite eating", "urgency": "urgent", "advice": "Hyperthyroidism, diabetes, and kidney disease all present this way in cats. Bloodwork needed — vet this week."},
+    {"id": "cat_overgrooming", "name": "Over-grooming / bald patches", "urgency": "monitor", "advice": "Usually stress, fleas, or allergies. Check for fleas. If skin is broken or patches spread, see a vet."},
+    {"id": "cat_scratching_ears", "name": "Scratching ears / head shaking", "urgency": "monitor", "advice": "Ear mites are very common in cats. Dark coffee-ground debris = mites. Vet visit for treatment."},
+    {"id": "cat_eye_watering", "name": "Watery / squinting eye", "urgency": "urgent", "advice": "Feline herpesvirus flares and corneal ulcers are common and painful. Eye issues worsen fast in cats — vet within 24h."},
+    {"id": "cat_seizure", "name": "Seizure", "urgency": "emergency", "advice": "Time it, keep hands away from mouth, dim lights. Any seizure warrants emergency vet evaluation."},
+    {"id": "cat_limping", "name": "Limping", "urgency": "urgent", "advice": "Check gently for wounds. Cats hide fractures well — if limping persists 12+ hours, X-rays needed."},
+    {"id": "cat_drooling", "name": "Sudden drooling", "urgency": "urgent", "advice": "Often dental pain, nausea, or toxin exposure (lilies, chemicals). Check mouth carefully; vet within 24h."},
+    {"id": "cat_lily_exposure", "name": "Ate any part of a lily", "urgency": "emergency", "advice": "Lilies cause fatal kidney failure in cats — even pollen grooming is lethal. EMERGENCY: aggressive IV fluids within hours save lives."},
+]
+
+
 @app.get("/symptom-checker", response_class=HTMLResponse)
-async def symptom_checker(request: Request):
+async def symptom_checker(request: Request, species: Optional[str] = Query(None)):
+    sp = species or "dog"
+    items = CAT_SYMPTOMS if sp == "cat" else SYMPTOMS
     return templates.TemplateResponse(request, "symptom/checker.html", {
-        "request": request, "symptoms": SYMPTOMS
+        "request": request, "symptoms": items, "current_species": sp,
     })
 
 
 @app.get("/symptom-checker/{symptom_id}", response_class=HTMLResponse)
 async def symptom_detail(request: Request, symptom_id: str):
     symptom = None
-    for s in SYMPTOMS:
+    for s in SYMPTOMS + CAT_SYMPTOMS:
         if s["id"] == symptom_id:
             symptom = s
             break
@@ -1067,9 +1137,15 @@ async def breeds_list(
     request: Request,
     search: Optional[str] = Query(None),
     size: Optional[str] = Query(None),
+    species: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
     query = select(Breed).order_by(Breed.name)
+    if species:
+        sp_result = await session.execute(select(Species).where(Species.slug == species))
+        sp = sp_result.scalars().first()
+        if sp:
+            query = query.where(Breed.species_id == sp.id)
     if search:
         query = query.where(Breed.name.ilike(f"%{search}%"))
     if size:

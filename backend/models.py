@@ -6,10 +6,23 @@ from sqlalchemy.sql import func
 from .database import Base
 
 
+class Species(Base):
+    __tablename__ = "species"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(50), unique=True, nullable=False)  # Dog, Cat, ...
+    slug = Column(String(50), unique=True, nullable=False)  # dog, cat
+    icon = Column(String(10), nullable=True)  # emoji
+    has_breeds = Column(Boolean, default=True)
+
+    breeds = relationship("Breed", back_populates="species")
+
+
 class Breed(Base):
     __tablename__ = "breeds"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=True)  # nullable = legacy dog data
     name = Column(String(100), unique=True, nullable=False, index=True)
     size_category = Column(String(20), nullable=True)  # toy, small, medium, large, giant
     weight_range_min = Column(Float, nullable=True)  # kg
@@ -36,6 +49,7 @@ class Breed(Base):
     median_lifespan = Column(Float, nullable=True)  # McMillan 2024 study median (years)
     created_at = Column(DateTime, server_default=func.now())
 
+    species = relationship("Species", back_populates="breeds")
     dogs = relationship("Dog", back_populates="breed")
 
 
@@ -44,6 +58,7 @@ class Dog(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=True)  # nullable = dog (legacy)
     breed_id = Column(Integer, ForeignKey("breeds.id"), nullable=True)
     dob = Column(Date, nullable=True)
     weight = Column(Float, nullable=True)  # kg
@@ -56,6 +71,7 @@ class Dog(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     breed = relationship("Breed", back_populates="dogs")
+    species = relationship("Species")
     vet_visits = relationship("VetVisit", back_populates="dog", cascade="all, delete-orphan")
     vaccinations = relationship("Vaccination", back_populates="dog", cascade="all, delete-orphan")
     medications = relationship("Medication", back_populates="dog", cascade="all, delete-orphan")

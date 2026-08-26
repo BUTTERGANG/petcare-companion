@@ -2,8 +2,20 @@
 {% block title %}Add Dog — PetCare Companion{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">🐕 Add a New Dog</h1>
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">Add a New Pet</h1>
+    <!-- Species picker -->
+    <div class="flex gap-2 mb-6">
+        {% for s in species_list %}
+        <a href="/dogs/add?species={{ s.slug }}"
+           {% if current_species and s.id == current_species.id %}class="px-5 py-2.5 rounded-xl font-semibold bg-paw-600 text-white shadow-soft"{% else %}class="px-5 py-2.5 rounded-xl font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-paw-50 dark:hover:bg-gray-700 transition"{% endif %}>
+            {{ s.icon }} {{ s.name }}
+        </a>
+        {% endfor %}
+    </div>
     <form method="post" action="/dogs/add" enctype="multipart/form-data" class="space-y-5">
+        {% if current_species %}
+        <input type="hidden" name="species_id" value="{{ current_species.id }}">
+        {% endif %}
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
             <input type="text" name="name" required

@@ -4,9 +4,16 @@
 {% block content %}
 <div class="space-y-6">
     <div class="text-center max-w-2xl mx-auto">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">🏥 Symptom Checker</h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-2">Select a symptom your dog is experiencing to get urgency guidance and care advice.</p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">⚠️ This is not a substitute for professional veterinary advice. When in doubt, always consult your vet.</p>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">🩺 Symptom Checker</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">Select a symptom to get urgency guidance and care advice.</p>
+        <!-- Species switch -->
+        <div class="flex justify-center gap-2 mt-4">
+            <a href="/symptom-checker?species=dog"
+               {% if current_species != 'cat' %}class="px-5 py-2 rounded-xl text-sm font-semibold bg-paw-600 text-white"{% else %}class="px-5 py-2 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 transition"{% endif %}>🐕 Dog</a>
+            <a href="/symptom-checker?species=cat"
+               {% if current_species == 'cat' %}class="px-5 py-2 rounded-xl text-sm font-semibold bg-paw-600 text-white"{% else %}class="px-5 py-2 rounded-xl text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 transition"{% endif %}>🐱 Cat</a>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">⚠️ This is not a substitute for professional veterinary advice. When in doubt, always consult your vet.</p>
     </div>
 
     <!-- Filter buttons -->
