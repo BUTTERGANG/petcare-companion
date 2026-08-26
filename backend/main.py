@@ -127,18 +127,27 @@ async def on_startup():
             )
             await session.commit()
 
-        # Seed veterinary conditions KB
+        # Seed veterinary conditions KB (merge all species seed files)
         try:
             from . import conditions_seed as cs
+            all_conditions = list(cs.CONDITIONS)
+            import importlib
+            for mod_name in ("conditions_seed_dogs", "conditions_seed_cats", "conditions_seed_large"):
+                try:
+                    mod = importlib.import_module(f".{mod_name}", package="backend")
+                    if hasattr(mod, "CONDITIONS"):
+                        all_conditions.extend(mod.CONDITIONS)
+                except ImportError:
+                    pass
         except ImportError:
-            cs = None
-        if cs:
+            all_conditions = []
+        if all_conditions:
             existing_conds = await session.execute(select(sa_func.count(Condition.id)))
             if existing_conds.scalar() == 0:
                 sp_map = {}
                 for s_ in (await session.execute(select(Species))).scalars().all():
                     sp_map[s_.slug] = s_.id
-                for c in cs.CONDITIONS:
+                for c in all_conditions:
                     sid = sp_map.get(c["species"])
                     if not sid:
                         continue
