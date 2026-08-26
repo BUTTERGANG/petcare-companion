@@ -111,7 +111,7 @@ CONDITIONS = [
        "Any unvaccinated kitten vomiting and refusing food = emergency NOW. Kittens decline from walking-sick to critical within 12-24 hours; early fluids are the difference between life and death.",
        ["AVMA feline panleukopenia guidelines", "AAFP vaccination guidelines", "Merck Veterinary Manual — Feline Panleukopenia"]),
 
-    _c("cat", "Toxoplasmosis", "toxoplasmosis-cat", "parasitic", "monitor",
+    _c("cat", "Toxoplasmosis", "toxoplasmosis", "parasitic", "monitor",
        "Infection by the single-celled parasite Toxoplasma gondii. Most healthy cats show mild or no symptoms, but immunocompromised cats and kittens can develop serious disseminated disease, and cats are the definitive host spreading oocysts into the environment — the zoonotic angle drives owner concern.",
        ["Often none (healthy adult carriers)", "Fever", "Loss of appetite", "Lethargy", "Eye inflammation (uveitis)", "Neurologic signs (tremors, seizures) in disseminated cases", "Pneumonia-type breathing difficulty in severe spread"],
        ["Eating infected prey (rodents, raw meat)", "Ingestion of oocysts from contaminated soil/water", "Transplacental transmission in pregnant queens (worst outcomes in fetuses)", "Immunosuppression (FeLV/FIV co-infection) reactivating dormant cysts"],

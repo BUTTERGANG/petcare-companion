@@ -132,7 +132,7 @@ async def on_startup():
             from . import conditions_seed as cs
             all_conditions = list(cs.CONDITIONS)
             import importlib
-            for mod_name in ("conditions_seed_dogs", "conditions_seed_cats", "conditions_seed_large"):
+            for mod_name in ("conditions_seed_dogs", "conditions_seed_cats", "conditions_seed_large", "conditions_seed_dogs2", "conditions_seed_cats2"):
                 try:
                     mod = importlib.import_module(f".{mod_name}", package="backend")
                     if hasattr(mod, "CONDITIONS"):
