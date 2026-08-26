@@ -1,6 +1,6 @@
 import os
 import shutil
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Optional
 
@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from .database import init_db, get_session, async_session
-from .models import Breed, Dog, VetVisit, Vaccination, Medication, Meal, WeightRecord, GroomingLog, Species, Condition
+from .models import Breed, Dog, VetVisit, Vaccination, Medication, Meal, WeightRecord, GroomingLog, Species, Condition, Herd
 from .schemas import (
     DogCreate, DogUpdate, DogOut, DogSummary, BreedOut,
     VetVisitCreate, VetVisitOut,
@@ -1240,6 +1240,86 @@ async def feeding_calculator(
         "request": request, "factors": FEEDING_FACTORS, "result": result,
         "weight": weight, "stage": stage, "dogs": dogs,
     })
+
+
+# ===================== HERDS =====================
+
+@app.get("/herds", response_class=HTMLResponse)
+async def herds_list(request: Request, session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Herd).options(joinedload(Herd.species)).order_by(Herd.name))
+    herds = result.scalars().unique().all()
+    # member counts + overdue counts per herd
+    data = []
+    today = date.today()
+    for h in herds:
+        members_result = await session.execute(select(Dog).where(Dog.herd_id == h.id))
+        members = members_result.scalars().all()
+        data.append({"herd": h, "count": len(members), "members": members})
+    return templates.TemplateResponse(request, "herds/list.html", {
+        "request": request, "data": data,
+    })
+
+
+@app.get("/herds/new", response_class=HTMLResponse)
+async def herd_new_form(request: Request, session: AsyncSession = Depends(get_session)):
+    species_result = await session.execute(select(Species).order_by(Species.id))
+    all_species = species_result.scalars().all()
+    return templates.TemplateResponse(request, "herds/new.html", {
+        "request": request, "species_list": all_species,
+    })
+
+
+@app.post("/herds/new")
+async def herd_create(request: Request, name: str = Form(...),
+                      species_id: int = Form(...),
+                      notes: Optional[str] = Form(None),
+                      session: AsyncSession = Depends(get_session)):
+    herd = Herd(name=name, species_id=species_id, notes=notes)
+    session.add(herd)
+    await session.commit()
+    return RedirectResponse("/herds?saved=1", status_code=303)
+
+
+@app.get("/herds/{herd_id}", response_class=HTMLResponse)
+async def herd_detail(request: Request, herd_id: int, session: AsyncSession = Depends(get_session)):
+    result = await session.execute(
+        select(Herd).options(joinedload(Herd.species)).where(Herd.id == herd_id))
+    herd = result.scalars().first()
+    if not herd:
+        raise HTTPException(status_code=404)
+    members_result = await session.execute(select(Dog).where(Dog.herd_id == herd_id).order_by(Dog.name))
+    members = members_result.scalars().all()
+    unassigned_result = await session.execute(
+        select(Dog).where(Dog.species_id == herd.species_id, Dog.herd_id.is_(None)).order_by(Dog.name))
+    unassigned = unassigned_result.scalars().all()
+
+    # Group-level health summary
+    today = date.today()
+    soon = today + timedelta(days=30)
+    stats = {"members": len(members), "overdue_vaccines": 0, "due_soon": 0}
+    for m in members:
+        vacs_result = await session.execute(select(Vaccination).where(Vaccination.dog_id == m.id))
+        for v in vacs_result.scalars().all():
+            if v.date_due:
+                if v.date_due < today:
+                    stats["overdue_vaccines"] += 1
+                elif v.date_due <= soon:
+                    stats["due_soon"] += 1
+    return templates.TemplateResponse(request, "herds/detail.html", {
+        "request": request, "herd": herd, "members": members, "stats": stats, "unassigned": unassigned,
+    })
+
+
+@app.post("/herds/{herd_id}/add-member")
+async def herd_add_member(herd_id: int, dog_id: int = Form(...),
+                          session: AsyncSession = Depends(get_session)):
+    result = await session.execute(select(Dog).where(Dog.id == dog_id))
+    animal = result.scalars().first()
+    if not animal:
+        raise HTTPException(status_code=404)
+    animal.herd_id = herd_id
+    await session.commit()
+    return RedirectResponse(f"/herds/{herd_id}?saved=1", status_code=303)
 
 
 # ===================== KNOWLEDGE BASE =====================

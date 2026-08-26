@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crumbs %}
+{% block title %}{{ herd.name }} — Herd{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    {{ crumbs([('/herds', 'Herds'), (None, herd.name)]) }}
+
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+                <span class="text-4xl">{{ herd.species.icon if herd.species else '🐾' }}</span>
+                <div>
+                    <h1 class="font-display text-2xl font-bold text-gray-900 dark:text-white">{{ herd.name }}</h1>
+                    <p class="text-sm text-gray-500">{{ herd.notes if herd.notes else '' }}</p>
+                </div>
+            </div>
+            <!-- Add member -->
+            <form method="post" action="/herds/{{ herd.id }}/add-member" class="flex gap-2">
+                <select name="dog_id" required class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950">
+                    <option value="">Add animal…</option>
+                    {% for a in unassigned %}
+                    <option value="{{ a.id }}">{{ a.name }}</option>
+                    {% endfor %}
+                </select>
+                <button class="px-4 py-2 bg-paw-600 text-white text-sm font-semibold rounded-xl hover:bg-paw-700">Add</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Group health stats -->
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 text-center">
+            <p class="font-display text-3xl font-bold text-paw-600">{{ stats.members }}</p>
+            <p class="text-xs uppercase tracking-wide text-gray-500 mt-1">Animals</p>
+        </div>
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border p-5 text-center {% if stats.overdue_vaccines %}border-red-300 dark:border-red-800{% else %}border-gray-200 dark:border-gray-800{% endif %}">
+            <p class="font-display text-3xl font-bold {% if stats.overdue_vaccines %}text-red-600{% else %}text-gray-400{% endif %}">{{ stats.overdue_vaccines }}</p>
+            <p class="text-xs uppercase tracking-wide text-gray-500 mt-1">Vaccines overdue</p>
+        </div>
+        <div class="bg-white dark:bg-gray-900 rounded-2xl border p-5 text-center {% if stats.due_soon %}border-amber-300 dark:border-amber-800{% else %}border-gray-200 dark:border-gray-800{% endif %}">
+            <p class="font-display text-3xl font-bold {% if stats.due_soon %}text-amber-600{% else %}text-gray-400{% endif %}">{{ stats.due_soon }}</p>
+            <p class="text-xs uppercase tracking-wide text-gray-500 mt-1">Due in 30 days</p>
+        </div>
+    </div>
+
+    <!-- Members -->
+    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+            <h2 class="font-semibold text-gray-900 dark:text-white">Members</h2>
+        </div>
+        {% if members %}
+        <ul class="divide-y divide-gray-100 dark:divide-gray-800">
+            {% for m in members %}
+            <li>
+                <a href="/dogs/{{ m.id }}" class="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">{{ herd.species.icon if herd.species else '🐾' }}</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ m.name }}</span>
+                    </div>
+                    <span class="text-sm text-gray-400">View profile →</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="px-6 py-10 text-center text-gray-500">No animals assigned yet. Use the dropdown above to add members.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

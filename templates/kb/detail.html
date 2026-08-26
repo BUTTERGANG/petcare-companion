@@ -67,11 +67,34 @@
     </div>
     {% endif %}
 
-    {% if condition.diagnosis %}
-    <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
-        <h2 class="font-semibold text-gray-900 dark:text-white mb-2">🔬 How It's Diagnosed</h2>
-        <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{{ condition.diagnosis }}</p>
+    {% set clinical = request.query_params.get('view') == 'clinical' %}
+    {% if clinical %}
+    <!-- CLINICAL VIEW: full professional detail -->
+    <div class="rounded-2xl bg-slate-900 text-white p-6 shadow-lift">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="font-display text-lg font-bold">🩺 Clinical Reference View</h2>
+            <a href="/kb/{{ species.slug }}/{{ condition.slug }}" class="text-xs font-semibold bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 transition">← Owner view</a>
+        </div>
+        <dl class="space-y-3 text-sm leading-relaxed text-slate-100">
+            {% if condition.diagnosis %}<div><dt class="font-bold text-paw-300 uppercase text-[10px] tracking-wider mb-0.5">Diagnostics</dt><dd>{{ condition.diagnosis }}</dd></div>{% endif %}
+            {% if condition.treatment %}<div><dt class="font-bold text-paw-300 uppercase text-[10px] tracking-wider mb-0.5">Therapeutics</dt><dd>{{ condition.treatment }}</dd></div>{% endif %}
+            {% if condition.prevention %}<div><dt class="font-bold text-paw-300 uppercase text-[10px] tracking-wider mb-0.5">Prevention / Control</dt><dd>{{ condition.prevention }}</dd></div>{% endif %}
+            {% if condition.causes %}<div><dt class="font-bold text-paw-300 uppercase text-[10px] tracking-wider mb-0.5">Etiology</dt><dd>{{ condition.causes|join(' · ') }}</dd></div>{% endif %}
+        </dl>
     </div>
+    {% endif %}
+
+    {% if condition.diagnosis and not clinical %}
+    <details class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 group">
+        <summary class="flex items-center justify-between cursor-pointer font-semibold text-gray-900 dark:text-white">
+            <span>🔬 How It's Diagnosed</span>
+            <span class="text-xs text-paw-600 font-semibold group-open:hidden">Show · also in Clinical View</span>
+        </summary>
+        <div class="mt-3">
+            <a href="/kb/{{ species.slug }}/{{ condition.slug }}?view=clinical" class="text-[10px] uppercase tracking-wider font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full hover:bg-slate-200">🩺 Clinical view</a>
+            <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mt-2">{{ condition.diagnosis }}</p>
+        </div>
+    </details>
     {% endif %}
 
     {% if condition.treatment %}

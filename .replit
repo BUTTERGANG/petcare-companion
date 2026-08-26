@@ -7,7 +7,7 @@ channel = "stable-24_05"
 
 [deployment]
 run = ["bash", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
-deploymentTarget = "autoscale"
+deploymentTarget = "vm"
 
 [deployment.env]
 PYTHONPATH = "."

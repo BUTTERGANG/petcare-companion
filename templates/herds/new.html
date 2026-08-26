@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crumbs %}
+{% block title %}New Herd{% endblock %}
+{% block content %}
+<div class="max-w-xl mx-auto bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+    {{ crumbs([('/herds', 'Herds'), (None, 'New')]) }}
+    <h1 class="font-display text-2xl font-bold text-gray-900 dark:text-white mb-5">Create a Herd</h1>
+    <form method="post" action="/herds/new" class="space-y-5">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Herd name *</label>
+            <input type="text" name="name" required placeholder="e.g. North Pasture Cattle"
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Species *</label>
+            <select name="species_id" required class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950">
+                {% for s in species_list %}
+                <option value="{{ s.id }}">{{ s.icon }} {{ s.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+            <textarea name="notes" rows="3" placeholder="Pasture, tag ranges, breeding groups..."
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-950"></textarea>
+        </div>
+        <button class="w-full py-3 bg-paw-600 text-white rounded-xl font-bold hover:bg-paw-700 transition">Create Herd</button>
+    </form>
+</div>
+{% endblock %}
