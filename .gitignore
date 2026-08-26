@@ -31,5 +31,7 @@ package-lock.json
 # Hermes
 .hermes/
 
+docs/reference-pdfs/
+
 # Temp
 /tmp/
